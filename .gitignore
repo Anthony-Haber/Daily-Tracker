@@ -19,3 +19,4 @@ daily-tracker-config.json
 Thumbs.db
 *.swp
 .vscode/
+.claude

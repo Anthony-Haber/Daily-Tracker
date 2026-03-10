@@ -2,6 +2,7 @@
 
 const { app, BrowserWindow, ipcMain, Tray, Menu, nativeImage, dialog } = require('electron');
 const path      = require('path');
+const os        = require('os');
 const db        = require('./src/db');
 const scheduler = require('./src/scheduler');
 const settings  = require('./src/settings');
@@ -17,7 +18,11 @@ let promptWindow     = null;
 let mealWindow       = null;
 let reflectionWindow = null;
 let settingsWindow   = null;
+let setupWizardWindow = null;
 let tray             = null;
+
+// Resolved by the setup:complete IPC handler once the wizard finishes.
+let _setupResolve = null;
 
 // ── Error-safe IPC helper ─────────────────────────────────────────────────────
 
@@ -130,6 +135,40 @@ function createReflectionWindow() {
   reflectionWindow.loadFile(path.join(__dirname, 'src', 'windows', 'reflection-window', 'index.html'));
   reflectionWindow.once('ready-to-show', () => { reflectionWindow.show(); reflectionWindow.focus(); });
   reflectionWindow.on('closed', () => { reflectionWindow = null; });
+}
+
+function createSetupWizardWindow() {
+  setupWizardWindow = new BrowserWindow({
+    width: 560, height: 640,
+    resizable:   false,
+    center:      true,
+    show:        false,
+    frame:       true,
+    webPreferences: {
+      preload:          path.join(__dirname, 'preload.js'),
+      contextIsolation: true,
+      nodeIntegration:  false,
+    },
+  });
+
+  setupWizardWindow.setMenuBarVisibility(false);
+  setupWizardWindow.loadFile(
+    path.join(__dirname, 'src', 'windows', 'setup-wizard', 'index.html'),
+  );
+  setupWizardWindow.once('ready-to-show', () => {
+    setupWizardWindow.show();
+    setupWizardWindow.focus();
+  });
+
+  // If the user closes the window without completing setup, fall back to userData.
+  setupWizardWindow.on('closed', () => {
+    if (_setupResolve) {
+      db.setDbFolder(app.getPath('userData'));
+      _setupResolve();
+      _setupResolve = null;
+    }
+    setupWizardWindow = null;
+  });
 }
 
 function createSettingsWindow() {
@@ -290,6 +329,29 @@ ipcMain.handle('settings:setAutoLaunch', (_e, enabled) => {
   }
 });
 
+// setup wizard
+ipcMain.handle('setup:getDefaultFolder', () => {
+  return path.join(os.homedir(), 'Documents', 'DailyTracker');
+});
+
+ipcMain.handle('setup:chooseFolder', async () => {
+  const { canceled, filePaths } = await dialog.showOpenDialog(setupWizardWindow, {
+    title: 'Choose where to save your Daily Tracker data',
+    buttonLabel: 'Save here',
+    properties: ['openDirectory', 'createDirectory'],
+  });
+  return canceled || filePaths.length === 0 ? null : filePaths[0];
+});
+
+ipcMain.handle('setup:complete', (_e, folderPath) => {
+  db.setDbFolder(folderPath);
+  if (_setupResolve) {
+    _setupResolve();
+    _setupResolve = null;
+  }
+  setupWizardWindow?.close();
+});
+
 // window control
 ipcMain.on('window:closePrompt',      () => promptWindow?.close());
 ipcMain.on('window:closeMeal',        () => mealWindow?.close());
@@ -318,6 +380,14 @@ ipcMain.on('window:open', (_e, name) => {
 // ── App lifecycle ─────────────────────────────────────────────────────────────
 
 app.whenReady().then(async () => {
+  // Show setup wizard on very first launch (no data folder chosen yet).
+  if (db.needsSetup()) {
+    await new Promise((resolve) => {
+      _setupResolve = resolve;
+      createSetupWizardWindow();
+    });
+  }
+
   await db.init();
   createTray();
   createMainWindow();

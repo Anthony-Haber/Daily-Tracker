@@ -1,28 +1,42 @@
 # Daily Tracker
 
-A lightweight desktop app for building self-awareness through consistent daily logging. Hourly activity check-ins, meal tracking, a task board, and an evening reflection — all stored locally on your machine, no accounts or cloud sync required.
+Keep track of your day — effortlessly.
 
-Built with Electron and SQLite.
+Daily Tracker is a small Windows app that lives in your system tray and helps you stay aware of how you're spending your time. It gently checks in with you each hour, helps you log meals, and gives you space to reflect at the end of the day. Everything stays private on your own computer.
 
 ---
 
-## Features
+## What it does
 
-**Hourly check-ins** — A timed prompt appears on the hour (within your configured window) asking what you worked on and how you felt. Takes five seconds to fill in.
+- **Hourly check-ins** — A quick pop-up asks what you've been working on each hour. Takes about 5 seconds.
+- **Meal logging** — Keep a simple record of what you eat throughout the day.
+- **Evening reflection** — Wind down with a short review of your day: highlights, challenges, and goals for tomorrow.
+- **Dashboard** — See everything you've logged, organized by day, all in one place.
 
-**Evening reflection** — At 8 PM, a structured journaling prompt captures daily highlights, challenges, gratitude, and priorities for tomorrow.
+Your data is saved in a file on your computer — nothing is sent to the internet.
 
-**Task board** — A minimal Kanban board (To Do / In Progress / Done) with drag-and-drop, due dates, categories, and overdue indicators.
+---
 
-**Meal tracker** — Log meals with type, description, and calories. Auto-selects meal type based on time of day. Shows a daily calorie total.
+## Download & Install
 
-**History & calendar** — A heat-map calendar shows which days have logged data. Click any day to see a full snapshot of activities, meals, tasks, and reflection.
+1. Go to the **[Releases](../../releases)** page on GitHub
+2. Download the latest **`Daily-Tracker-Setup.exe`** file
+3. Double-click it and follow the on-screen steps (takes about 30 seconds)
+4. Daily Tracker will appear in your **system tray** — the small icons in the bottom-right corner of your taskbar
 
-**Streak counter** — Counts how many consecutive days you've logged activity.
+**On first launch**, a short setup wizard will welcome you and ask where to save your data. The default (your Documents folder) works great for most people — just click "Start Using Daily Tracker."
 
-**System tray** — Lives in your system tray. Access everything from the tray menu without keeping a window open.
+### To uninstall
 
-**Configurable reminders** — Set the start and end hour for reminders. Pause notifications for the session from the tray. Launch on startup (optional).
+Open **Windows Settings → Apps**, search for **Daily Tracker**, and click Uninstall.
+
+---
+
+## How to use it
+
+- **Left-click** the tray icon to open the dashboard
+- **Right-click** the tray icon for quick access to log an activity, log a meal, or open the evening reflection
+- To set Daily Tracker to open automatically when you turn on your PC, go to **tray → Settings** and turn on "Start Daily Tracker when Windows starts"
 
 ---
 
@@ -32,14 +46,17 @@ Built with Electron and SQLite.
 
 ---
 
-## Getting Started
+---
+
+## For Developers
 
 ### Prerequisites
 
-- [Node.js](https://nodejs.org/) 18 or later
-- npm
+- [Node.js](https://nodejs.org/) v18 or later (comes with npm)
+- A C++ build toolchain for compiling the SQLite native module:
+  - **Windows:** Install [Visual Studio Build Tools](https://visualstudio.microsoft.com/visual-cpp-build-tools/) — select "Desktop development with C++"
 
-### Install and run
+### Run from source
 
 ```bash
 git clone https://github.com/Anthony-Haber/daily-tracker.git
@@ -48,110 +65,53 @@ npm install
 npm start
 ```
 
-`npm install` triggers a `postinstall` step that recompiles `better-sqlite3` against the bundled Electron version. This requires Python and a C++ build toolchain:
-
-- **Windows:** Install [Visual Studio Build Tools](https://visualstudio.microsoft.com/visual-cpp-build-tools/) (select "Desktop development with C++")
-- **Linux:** `sudo apt install build-essential python3` (or equivalent for your distro)
-- **macOS:** `xcode-select --install`
-
----
-
-## Building Distributables
+### Build a Windows installer
 
 ```bash
-# Windows installer (.exe via NSIS)
+cd daily-tracker
 npm run build:win
-
-# Linux AppImage
-npm run build:linux
-
-# Both at once
-npm run build
 ```
 
-Output goes to `daily-tracker/dist/`.
+The installer (`Daily-Tracker-Setup.exe`) will appear in the `dist/` folder.
 
-> **Note:** Building the Linux AppImage must be done on a Linux machine (or WSL2 / Docker). Cross-compiling native modules like `better-sqlite3` from Windows to Linux is not supported.
+### Project structure
 
----
+```
+daily-tracker/
+├── main.js                  # App entry, tray, IPC handlers, window management
+├── preload.js               # Exposes window.api / window.tracker to renderers
+└── src/
+    ├── db.js                # SQLite CRUD (better-sqlite3)
+    ├── scheduler.js         # Hourly reminder timer
+    ├── settings.js          # Persistent settings + auto-launch
+    └── windows/
+        ├── main-window/     # Dashboard
+        ├── prompt-window/   # Hourly check-in popup
+        ├── meal-window/     # Meal logger popup
+        ├── reflection-window/  # Evening reflection popup
+        ├── settings-window/ # Settings panel
+        └── setup-wizard/    # First-launch setup flow
+```
 
-## Configuration
-
-Open **Settings** from the tray menu or dashboard.
-
-| Setting | Description |
-|---|---|
-| Reminder hours | The start and end hour (24h) for hourly prompts |
-| Reminders enabled | Master toggle — turn off entirely or pause for the session from the tray |
-| Launch on startup | Registers the app with the OS login items |
-| Database folder | Move the database file to a custom location (e.g. a synced folder) |
-
-All settings are saved immediately. Changes to the database folder take effect after a restart.
-
----
-
-## Data & Privacy
-
-Everything is stored locally:
-
-- **Database:** `daily-tracker.db` — SQLite file in your OS user-data directory, or a custom folder you choose in Settings
-- **Preferences:** `daily-tracker-config.json` — also in user-data
-
-No telemetry, no analytics, no network requests. The app works fully offline.
-
-If you want to sync your data across machines, point the database folder at a location managed by your sync client (Dropbox, Syncthing, etc.). Avoid having the app open on two machines simultaneously against the same file.
-
----
-
-## Tech Stack
+### Tech stack
 
 | Layer | Technology |
 |---|---|
 | Shell | [Electron](https://www.electronjs.org/) v29 |
 | Database | [better-sqlite3](https://github.com/WiseLibs/better-sqlite3) |
 | Settings | [electron-store](https://github.com/sindresorhus/electron-store) |
-| UI | Vanilla HTML / CSS / JavaScript (no framework) |
+| UI | Vanilla HTML / CSS / JavaScript |
 | Packaging | [electron-builder](https://www.electron.build/) |
 
----
+### Data & privacy
 
-## Project Structure
+All data lives locally:
 
-```
-daily-tracker/
-├── main.js              # App entry, tray, IPC handlers, window management
-├── preload.js           # Exposes window.api to renderer processes
-└── src/
-    ├── db.js            # SQLite CRUD operations
-    ├── scheduler.js     # Hourly reminder timer and reflection trigger
-    ├── settings.js      # Persistent settings + cross-platform auto-launch
-    └── windows/
-        ├── main-window/     # Dashboard (overview, tasks, meals, history)
-        ├── prompt-window/   # Hourly activity check-in popup
-        ├── meal-window/     # Quick meal logger popup
-        ├── reflection-window/ # Evening reflection popup
-        └── settings-window/ # Settings panel
-```
+- **Database:** `daily-tracker.db` — SQLite file in the folder chosen during setup (default: `Documents\DailyTracker`)
+- **Preferences:** `daily-tracker-config.json` — in the OS user-data directory
+
+No telemetry, no analytics, no network requests.
 
 ---
 
-## Linux Notes
-
-**Notifications:** Uses the Electron Notification API. If notifications don't appear, install `libnotify-bin`:
-```bash
-sudo apt install libnotify-bin
-```
-
-**Auto-launch:** Managed via a `.desktop` file written to `~/.config/autostart/`.
-
-**AppImage:** The distributed AppImage is self-contained and runs without installation. Mark it executable and run it:
-```bash
-chmod +x Daily-Tracker-*.AppImage
-./Daily-Tracker-*.AppImage
-```
-
----
-
-## License
-
-MIT
+MIT License

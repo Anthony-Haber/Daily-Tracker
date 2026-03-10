@@ -228,6 +228,37 @@ html, body {
   line-height: 1.5;
 }
 
+/* ── Journal section ─────────────────────────────────────────────────────────── */
+.journal-wrap {
+  position: relative;
+}
+
+.journal-textarea {
+  min-height: 200px;
+  background: #FFFDF9;
+  border-color: var(--border);
+  font-size: 13.5px;
+  line-height: 1.7;
+  color: var(--text-2);
+  padding-bottom: 26px; /* room for char count */
+}
+
+.journal-textarea:focus {
+  border-color: #C4B5A0;
+  box-shadow: 0 0 0 3px rgba(196,181,160,.18);
+}
+
+.char-count {
+  position: absolute;
+  bottom: 8px;
+  right: 10px;
+  font-size: 11px;
+  color: var(--text-light);
+  pointer-events: none;
+  user-select: none;
+  line-height: 1;
+}
+
 /* ── Utility ─────────────────────────────────────────────────────────────────── */
 .hidden { display: none !important; }
 

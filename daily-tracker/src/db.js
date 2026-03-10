@@ -36,13 +36,26 @@ function safeDB(fn, fallback = null) {
 
 // ── Init ──────────────────────────────────────────────────────────────────────
 
+/** Returns true when no data folder has been chosen yet (i.e. first launch). */
+function needsSetup() {
+  return !store.get('dbFolder');
+}
+
+/**
+ * Persist the chosen data folder path without opening a dialog.
+ * Called by the setup wizard IPC handler in main.js.
+ * @param {string} folderPath
+ */
+function setDbFolder(folderPath) {
+  store.set('dbFolder', folderPath);
+}
+
 /**
  * Open (or create) the SQLite database.
  *
- * On first launch the user is prompted to choose a folder so the file can live
- * in a cloud-synced location (Dropbox, OneDrive, iCloud Drive, etc.).  The
- * chosen path is saved in electron-store and reused on every subsequent launch.
- * If the user cancels the picker we fall back to the standard userData folder.
+ * The data folder must already be stored in electron-store before calling
+ * init() — either via the setup wizard (first launch) or from a previous
+ * session.  Falls back to userData if somehow nothing is set.
  *
  * Uses path.join() throughout — works on Windows, macOS and Linux.
  */
@@ -50,21 +63,12 @@ async function init() {
   let dbFolder = store.get('dbFolder');
 
   if (!dbFolder) {
-    const { canceled, filePaths } = await dialog.showOpenDialog({
-      title: 'Choose a folder for your Daily Tracker database',
-      buttonLabel: 'Store database here',
-      message: 'Pick a cloud-synced folder (Dropbox, OneDrive, …) so your data stays backed up.',
-      properties: ['openDirectory', 'createDirectory'],
-    });
-
+    // Safety fallback — should not happen after the setup wizard runs.
     // app.getPath('userData') is cross-platform:
     //   Windows → C:\Users\<user>\AppData\Roaming\<app>
     //   macOS   → ~/Library/Application Support/<app>
     //   Linux   → ~/.config/<app>
-    dbFolder = (!canceled && filePaths.length > 0)
-      ? filePaths[0]
-      : app.getPath('userData');
-
+    dbFolder = app.getPath('userData');
     store.set('dbFolder', dbFolder);
   }
 
@@ -76,6 +80,7 @@ async function init() {
 
     createTables();
     try { db.exec('ALTER TABLE tasks ADD COLUMN category TEXT'); } catch (_) {}
+    try { db.exec('ALTER TABLE reflections ADD COLUMN journal_entry TEXT'); } catch (_) {}
   } catch (err) {
     dialog.showErrorBox(
       'Failed to open database',
@@ -304,18 +309,19 @@ function deleteMeal(id) {
 
 // ── reflections CRUD ──────────────────────────────────────────────────────────
 
-function upsertReflection({ date, mood = null, highlights = null, challenges = null, gratitude = null, tomorrow_goals = null }) {
+function upsertReflection({ date, mood = null, highlights = null, challenges = null, gratitude = null, tomorrow_goals = null, journal_entry = null }) {
   return safeDB(() => {
     db.prepare(`
-      INSERT INTO reflections (date, mood, highlights, challenges, gratitude, tomorrow_goals)
-      VALUES (?, ?, ?, ?, ?, ?)
+      INSERT INTO reflections (date, mood, highlights, challenges, gratitude, tomorrow_goals, journal_entry)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
       ON CONFLICT(date) DO UPDATE SET
         mood           = excluded.mood,
         highlights     = excluded.highlights,
         challenges     = excluded.challenges,
         gratitude      = excluded.gratitude,
-        tomorrow_goals = excluded.tomorrow_goals
-    `).run(date, mood, highlights, challenges, gratitude, tomorrow_goals);
+        tomorrow_goals = excluded.tomorrow_goals,
+        journal_entry  = excluded.journal_entry
+    `).run(date, mood, highlights, challenges, gratitude, tomorrow_goals, journal_entry);
     return { ok: true };
   }, { ok: false });
 }
@@ -358,6 +364,8 @@ function getActiveDates() {
 module.exports = {
   // lifecycle
   init,
+  needsSetup,
+  setDbFolder,
   getDbPath,
   changeDbFolder,
 

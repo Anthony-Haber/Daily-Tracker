@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline';" />
+  <title>Welcome — Daily Tracker</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+  <div class="wizard">
+
+    <!-- ── Step 1: Welcome ──────────────────────────────────────────────────── -->
+    <div id="step-welcome" class="step active">
+      <div class="wizard-icon">📋</div>
+      <h1 class="wizard-title">Welcome to Daily Tracker!</h1>
+      <p class="wizard-subtitle">Your simple companion for a more mindful, productive day.</p>
+
+      <ul class="feature-list">
+        <li>
+          <span class="feature-icon">⏰</span>
+          <div class="feature-text">
+            <strong>Hourly check-ins</strong>
+            <p>A gentle reminder each hour so you can log what you're working on</p>
+          </div>
+        </li>
+        <li>
+          <span class="feature-icon">🍽️</span>
+          <div class="feature-text">
+            <strong>Meal tracking</strong>
+            <p>Keep a simple record of what you eat throughout the day</p>
+          </div>
+        </li>
+        <li>
+          <span class="feature-icon">🌙</span>
+          <div class="feature-text">
+            <strong>Evening reflection</strong>
+            <p>Wind down with a quick review of your day's highlights and goals</p>
+          </div>
+        </li>
+      </ul>
+
+      <button id="btn-next" class="btn btn-primary btn-lg">Get Started →</button>
+    </div>
+
+    <!-- ── Step 2: Choose folder ─────────────────────────────────────────────── -->
+    <div id="step-folder" class="step">
+      <h1 class="wizard-title">Where should we save your data?</h1>
+      <p class="wizard-subtitle">
+        Daily Tracker saves all your logs in a single file on your computer.
+        We recommend your Documents folder — it's easy to find and backed up by OneDrive.
+      </p>
+
+      <div class="folder-card" id="folder-card">
+        <div class="folder-card-icon">📁</div>
+        <div class="folder-card-info">
+          <div class="folder-card-label">
+            Documents folder
+            <span class="badge">Recommended</span>
+          </div>
+          <div class="folder-card-path mono" id="default-folder-path">Loading…</div>
+        </div>
+        <div class="folder-card-check" id="folder-check">✓</div>
+      </div>
+
+      <div class="folder-alt">
+        <span>Want to save somewhere else?</span>
+        <button id="btn-choose-folder" class="btn btn-ghost btn-sm">Browse…</button>
+      </div>
+
+      <div id="custom-folder-display" class="custom-folder hidden">
+        <span class="custom-folder-label">Custom location selected:</span>
+        <span id="custom-folder-path" class="custom-folder-path mono"></span>
+        <button id="btn-use-default" class="btn btn-ghost btn-xs">Use default instead</button>
+      </div>
+
+      <div class="wizard-actions">
+        <button id="btn-back" class="btn btn-ghost">← Back</button>
+        <button id="btn-start" class="btn btn-primary btn-lg">Start Using Daily Tracker →</button>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="renderer.js"></script>
+</body>
+</html>

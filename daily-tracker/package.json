@@ -2,6 +2,7 @@
   "name": "daily-tracker",
   "version": "1.0.0",
   "description": "Daily productivity tracker with hourly check-ins and evening reflections",
+  "author": "Daily Tracker",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
@@ -35,8 +36,11 @@
       "category": "Utility"
     },
     "nsis": {
-      "oneClick": false,
-      "allowToChangeInstallationDirectory": true
+      "oneClick": true,
+      "installerHeaderIcon": "assets/tray-icon.png",
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Daily Tracker"
     }
   },
   "dependencies": {

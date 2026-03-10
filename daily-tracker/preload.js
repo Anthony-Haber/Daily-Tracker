@@ -27,6 +27,11 @@ contextBridge.exposeInMainWorld('api', {
   setSetting:     (key, value)    => ipcRenderer.invoke('settings:set',           key, value),
   setAutoLaunch:  (enabled)       => ipcRenderer.invoke('settings:setAutoLaunch', enabled),
 
+  // Setup wizard
+  setupGetDefaultFolder: ()       => ipcRenderer.invoke('setup:getDefaultFolder'),
+  setupChooseFolder:     ()       => ipcRenderer.invoke('setup:chooseFolder'),
+  setupComplete:         (folder) => ipcRenderer.invoke('setup:complete', folder),
+
   // App controls
   closeWindow: ()     => ipcRenderer.send('window:close'),
   openWindow:  (name) => ipcRenderer.send('window:open', name),
@@ -76,6 +81,11 @@ contextBridge.exposeInMainWorld('tracker', {
   schedulerPause:    () => ipcRenderer.invoke('scheduler:pause'),
   schedulerResume:   () => ipcRenderer.invoke('scheduler:resume'),
   schedulerIsPaused: () => ipcRenderer.invoke('scheduler:isPaused'),
+
+  // ── setup wizard ────────────────────────────────────────────────────────────
+  setupGetDefaultFolder: ()       => ipcRenderer.invoke('setup:getDefaultFolder'),
+  setupChooseFolder:     ()       => ipcRenderer.invoke('setup:chooseFolder'),
+  setupComplete:         (folder) => ipcRenderer.invoke('setup:complete', folder),
 
   // ── window control ──────────────────────────────────────────────────────────
   closeWindow:          () => ipcRenderer.send('window:close'),

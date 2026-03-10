@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline';" />
+  <title>Hourly Check-in</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+  <!-- ── Success toast ──────────────────────────────────────────────────────── -->
+  <div id="toast" class="toast" aria-live="polite">Logged ✓</div>
+
+  <div class="card">
+
+    <!-- ── Header ─────────────────────────────────────────────────────────── -->
+    <header class="card-header">
+      <div class="header-left">
+        <span class="clock" id="clock"></span>
+        <h1 class="title">Hourly Check-in</h1>
+      </div>
+      <kbd class="hint" title="Press Escape to skip">Esc to skip</kbd>
+    </header>
+
+    <!-- ── Activity textarea ──────────────────────────────────────────────── -->
+    <section class="field-group">
+      <label class="field-label" for="activity">What are you working on?</label>
+      <textarea
+        id="activity"
+        class="textarea"
+        rows="3"
+        maxlength="300"
+        placeholder="Describe what you've been up to this past hour…"
+        spellcheck="true"
+      ></textarea>
+      <span class="char-count" id="char-count">0 / 300</span>
+    </section>
+
+    <!-- ── Category pills ────────────────────────────────────────────────── -->
+    <section class="field-group">
+      <label class="field-label">Category</label>
+      <div class="pill-row" id="category-row" role="group" aria-label="Category">
+        <button class="pill" data-cat="work">Work</button>
+        <button class="pill" data-cat="personal">Personal</button>
+        <button class="pill" data-cat="break">Break</button>
+        <button class="pill" data-cat="exercise">Exercise</button>
+        <button class="pill" data-cat="other">Other</button>
+      </div>
+    </section>
+
+    <!-- ── Mood ──────────────────────────────────────────────────────────── -->
+    <section class="field-group">
+      <label class="field-label">
+        Mood <span class="optional">(optional)</span>
+      </label>
+      <div class="mood-row" id="mood-row" role="group" aria-label="Mood">
+        <button class="mood-btn" data-mood="1" title="Tired">😴</button>
+        <button class="mood-btn" data-mood="2" title="Neutral">😐</button>
+        <button class="mood-btn" data-mood="3" title="Okay">🙂</button>
+        <button class="mood-btn" data-mood="4" title="Good">😊</button>
+        <button class="mood-btn" data-mood="5" title="On fire">🔥</button>
+      </div>
+    </section>
+
+    <!-- ── Actions ───────────────────────────────────────────────────────── -->
+    <footer class="actions">
+      <span class="shortcut-hint">↵ Enter to log</span>
+      <div class="btn-group">
+        <button id="btn-skip"  class="btn btn-ghost">Skip</button>
+        <button id="btn-log"   class="btn btn-primary" disabled>Log it →</button>
+      </div>
+    </footer>
+
+  </div>
+
+  <script src="renderer.js"></script>
+</body>
+</html>

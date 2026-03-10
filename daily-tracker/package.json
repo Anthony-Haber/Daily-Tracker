@@ -1,0 +1,52 @@
+{
+  "name": "daily-tracker",
+  "version": "1.0.0",
+  "description": "Daily productivity tracker with hourly check-ins and evening reflections",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "postinstall": "electron-rebuild",
+    "build:win": "electron-builder --win",
+    "build:linux": "electron-builder --linux",
+    "build": "electron-builder --win --linux"
+  },
+  "build": {
+    "appId": "com.dailytracker.app",
+    "productName": "Daily Tracker",
+    "files": [
+      "main.js",
+      "preload.js",
+      "src/**/*",
+      "assets/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "assets/tray-icon.png",
+        "to": "assets/tray-icon.png"
+      }
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "assets/tray-icon.png"
+    },
+    "linux": {
+      "target": "AppImage",
+      "icon": "assets/tray-icon.png",
+      "category": "Utility"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    }
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.8.1",
+    "electron-store": "^8.2.0"
+  },
+  "devDependencies": {
+    "@electron/rebuild": "^3.6.0",
+    "electron": "^29.1.0",
+    "electron-builder": "^24.13.3",
+    "electron-rebuild": "^3.2.9"
+  }
+}

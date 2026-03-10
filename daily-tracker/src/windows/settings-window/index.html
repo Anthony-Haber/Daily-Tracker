@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline';" />
+  <title>Settings — Daily Tracker</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+  <div class="card">
+
+    <!-- ── Header ─────────────────────────────────────────────────────────── -->
+    <header class="card-header">
+      <h1 class="title">Settings</h1>
+      <button id="btn-close" class="btn-icon" title="Close">✕</button>
+    </header>
+
+    <!-- ── Database ──────────────────────────────────────────────────────── -->
+    <section class="settings-section">
+      <div class="section-heading">Database</div>
+
+      <div class="setting-row">
+        <div class="setting-info">
+          <span class="setting-label">Database file</span>
+          <span class="setting-desc mono" id="db-path">Loading…</span>
+        </div>
+        <button id="btn-change-db" class="btn btn-ghost btn-sm">Change Folder</button>
+      </div>
+      <p class="section-note">Changes to the database folder take effect after restarting the app.</p>
+    </section>
+
+    <!-- ── Hourly Reminders ───────────────────────────────────────────────── -->
+    <section class="settings-section">
+      <div class="section-heading">Hourly Reminders</div>
+
+      <div class="setting-row">
+        <div class="setting-info">
+          <label class="setting-label" for="toggle-reminders">Enable reminders</label>
+          <span class="setting-desc">Show a notification and open the log window every hour</span>
+        </div>
+        <label class="toggle">
+          <input type="checkbox" id="toggle-reminders" />
+          <span class="toggle-track"></span>
+        </label>
+      </div>
+
+      <div class="setting-row" id="row-hours">
+        <div class="setting-info">
+          <span class="setting-label">Active hours</span>
+          <span class="setting-desc">Reminders only fire between these times</span>
+        </div>
+        <div class="hour-range">
+          <select id="sel-start-hour" class="form-select"></select>
+          <span class="hour-sep">to</span>
+          <select id="sel-end-hour" class="form-select"></select>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── Startup ───────────────────────────────────────────────────────── -->
+    <section class="settings-section">
+      <div class="section-heading">Startup</div>
+
+      <div class="setting-row">
+        <div class="setting-info">
+          <label class="setting-label" for="toggle-startup">Launch on login</label>
+          <span class="setting-desc">Start Daily Tracker automatically when you log in to your OS</span>
+        </div>
+        <label class="toggle">
+          <input type="checkbox" id="toggle-startup" />
+          <span class="toggle-track"></span>
+        </label>
+      </div>
+    </section>
+
+    <!-- ── Footer ─────────────────────────────────────────────────────────── -->
+    <footer class="card-footer">
+      <span id="status-msg" class="status-msg" aria-live="polite"></span>
+      <button id="btn-done" class="btn btn-primary">Done</button>
+    </footer>
+
+  </div>
+
+  <script src="renderer.js"></script>
+</body>
+</html>

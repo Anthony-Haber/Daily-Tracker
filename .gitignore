@@ -1,0 +1,21 @@
+# Dependencies
+node_modules/
+daily-tracker/node_modules/
+
+# Build output
+dist/
+daily-tracker/dist/
+
+# Database (managed by user's sync folder, not source-controlled)
+*.db
+*.db-shm
+*.db-wal
+
+# electron-store config (written to userData dir, not the project — listed here as a safety net)
+daily-tracker-config.json
+
+# OS / editor
+.DS_Store
+Thumbs.db
+*.swp
+.vscode/

@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline';" />
+  <title>Log Meal</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="card">
+    <h1 class="heading">Log Meal</h1>
+    <p class="subheading" id="time-label"></p>
+
+    <label class="field-label">Meal type</label>
+    <div class="type-row" id="type-row">
+      <button class="type-btn" data-type="breakfast">Breakfast</button>
+      <button class="type-btn" data-type="lunch">Lunch</button>
+      <button class="type-btn" data-type="dinner">Dinner</button>
+      <button class="type-btn" data-type="snack">Snack</button>
+    </div>
+
+    <label class="field-label" for="description">What did you eat?</label>
+    <textarea id="description" class="input textarea" rows="3"
+              placeholder="e.g. Chicken salad with olive oil and lemon…" maxlength="400"></textarea>
+
+    <label class="field-label" for="calories">
+      Calories <span class="optional">(optional)</span>
+    </label>
+    <input id="calories" class="input" type="number" min="0" max="9999"
+           placeholder="e.g. 450" />
+
+    <div class="actions">
+      <button id="btn-skip" class="btn btn-ghost">Skip</button>
+      <button id="btn-save" class="btn btn-primary" disabled>Save</button>
+    </div>
+  </div>
+
+  <script src="renderer.js"></script>
+</body>
+</html>

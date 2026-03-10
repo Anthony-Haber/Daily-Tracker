@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline';" />
+  <title>Evening Reflection</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="window">
+
+    <!-- ── Header ────────────────────────────────────────────────────────────── -->
+    <header class="header">
+      <div class="header-title" id="header-title">Evening Reflection</div>
+    </header>
+
+    <!-- ── Form content ──────────────────────────────────────────────────────── -->
+    <div class="content" id="form-content">
+
+      <!-- 1. Mood slider -->
+      <div class="section">
+        <span class="section-label">How was your day?</span>
+        <div class="mood-wrap">
+          <input type="range" id="mood-slider" class="mood-slider" min="1" max="5" value="3" />
+          <div class="mood-labels">
+            <span>Rough</span>
+            <span>Okay</span>
+            <span>Good</span>
+            <span>Great</span>
+            <span>Excellent</span>
+          </div>
+          <div class="mood-current" id="mood-current">Good</div>
+        </div>
+      </div>
+
+      <!-- 2. Highlights -->
+      <div class="section">
+        <label class="section-label" for="highlights">Highlights of the day</label>
+        <textarea id="highlights" class="textarea" rows="3"
+                  placeholder="What went well? What are you proud of?" maxlength="1000"></textarea>
+      </div>
+
+      <!-- 3. Challenges -->
+      <div class="section">
+        <label class="section-label" for="challenges">Challenges or frustrations</label>
+        <textarea id="challenges" class="textarea" rows="3"
+                  placeholder="What was hard? What can you learn from it?" maxlength="1000"></textarea>
+      </div>
+
+      <!-- 4. Gratitude -->
+      <div class="section">
+        <label class="section-label" for="gratitude">What I'm grateful for</label>
+        <textarea id="gratitude" class="textarea" rows="3"
+                  placeholder="Three things, big or small…" maxlength="1000"></textarea>
+      </div>
+
+      <!-- 5. Tomorrow goals -->
+      <div class="section">
+        <label class="section-label" for="tomorrow-goals">Goals for tomorrow</label>
+        <textarea id="tomorrow-goals" class="textarea" rows="3"
+                  placeholder="Top priorities and intentions for tomorrow…" maxlength="1000"></textarea>
+      </div>
+
+      <div class="actions">
+        <button class="btn btn-ghost" id="btn-skip">Skip</button>
+        <button class="btn btn-primary" id="btn-save">Save Reflection</button>
+      </div>
+
+    </div>
+
+    <!-- ── Success state ──────────────────────────────────────────────────────── -->
+    <div class="success-state hidden" id="success-state">
+      <div class="success-icon">✓</div>
+      <div class="success-title">Reflection saved</div>
+      <div class="success-msg">Great job taking a moment to reflect on your day.</div>
+      <button class="btn btn-primary" id="btn-close">Close Window</button>
+    </div>
+
+  </div>
+  <script src="renderer.js"></script>
+</body>
+</html>

@@ -10,11 +10,19 @@ const btnLog       = document.getElementById('btn-log');
 const btnSkip      = document.getElementById('btn-skip');
 const clockEl      = document.getElementById('clock');
 const toastEl      = document.getElementById('toast');
+const taskSection   = document.getElementById('task-section');
+const taskList      = document.getElementById('task-list');
+const completeRow   = document.getElementById('complete-row');
+const completeCheck = document.getElementById('complete-check');
+const completeLabel = document.getElementById('complete-label');
 
 // ── State ─────────────────────────────────────────────────────────────────────
 
 let selectedCategory = null;   // string | null
 let selectedMood     = null;   // 1-5   | null
+let selectedTaskId   = null;   // number | null
+let autoFilledTitle  = null;   // string | null — the title we injected, so we can clear it
+let markComplete     = false;  // whether to mark selected task done on submit
 let submitting       = false;
 
 // ── Clock ─────────────────────────────────────────────────────────────────────
@@ -69,6 +77,95 @@ moodRow.querySelectorAll('.mood-btn').forEach((btn) => {
   });
 });
 
+// ── Task selector ─────────────────────────────────────────────────────────────
+
+const STATUS_LABEL = { pending: 'Pending', in_progress: 'In progress' };
+
+function renderTasks(tasks) {
+  if (!tasks || tasks.length === 0) return;
+
+  taskSection.style.display = '';
+
+  tasks.forEach((task) => {
+    const pill = document.createElement('button');
+    pill.className = 'task-pill';
+    pill.dataset.id     = task.id;
+    pill.dataset.status = task.status;
+    pill.innerHTML =
+      `<span class="task-pill-title">${escapeHtml(task.title)}</span>` +
+      `<span class="task-pill-status">${STATUS_LABEL[task.status] ?? task.status}</span>`;
+
+    pill.addEventListener('click', () => {
+      if (selectedTaskId === task.id) {
+        // Deselect
+        pill.classList.remove('selected', 'will-complete');
+        selectedTaskId = null;
+        markComplete   = false;
+        completeRow.style.display  = 'none';
+        completeCheck.checked      = false;
+        completeLabel.classList.remove('checked');
+        pill.querySelector('.task-pill-status').textContent = STATUS_LABEL[task.status] ?? task.status;
+        if (activityEl.value === autoFilledTitle) {
+          activityEl.value = '';
+          activityEl.dispatchEvent(new Event('input'));
+        }
+        autoFilledTitle = null;
+      } else {
+        // Select (deselect previous, reset its status text)
+        taskList.querySelectorAll('.task-pill').forEach((p) => {
+          p.classList.remove('selected', 'will-complete');
+          p.querySelector('.task-pill-status').textContent =
+            STATUS_LABEL[p.dataset.status] ?? p.dataset.status;
+        });
+        pill.classList.add('selected');
+        selectedTaskId = task.id;
+        markComplete   = false;
+        completeCheck.checked      = false;
+        completeLabel.classList.remove('checked');
+        completeRow.style.display  = '';
+
+        if (!activityEl.value.trim()) {
+          autoFilledTitle = task.title;
+          activityEl.value = task.title;
+          activityEl.dispatchEvent(new Event('input'));
+        }
+      }
+    });
+
+    taskList.appendChild(pill);
+  });
+}
+
+function escapeHtml(str) {
+  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+// ── Mark-complete toggle ───────────────────────────────────────────────────────
+
+completeCheck.addEventListener('change', () => {
+  markComplete = completeCheck.checked;
+  completeLabel.classList.toggle('checked', markComplete);
+
+  const selectedPill = taskList.querySelector('.task-pill.selected');
+  if (!selectedPill) return;
+
+  selectedPill.classList.toggle('will-complete', markComplete);
+  selectedPill.querySelector('.task-pill-status').textContent =
+    markComplete ? '✓ Done' : (STATUS_LABEL[selectedPill.dataset.status] ?? selectedPill.dataset.status);
+});
+
+async function loadTasks() {
+  try {
+    const all = await tracker.getTasks();
+    const active = (all || []).filter(
+      (t) => t.status === 'pending' || t.status === 'in_progress',
+    );
+    renderTasks(active);
+  } catch {
+    // Non-critical — silently ignore
+  }
+}
+
 // ── Log button state ──────────────────────────────────────────────────────────
 
 function syncLogButton() {
@@ -96,7 +193,12 @@ async function submit() {
       activity,
       category:  selectedCategory,
       mood:      selectedMood,
+      task_id:   selectedTaskId,
     });
+
+    if (markComplete && selectedTaskId) {
+      await tracker.updateTask(selectedTaskId, { status: 'done' });
+    }
 
     showToast();
     // Brief pause so the user sees the confirmation before the window closes.
@@ -135,4 +237,5 @@ btnSkip.addEventListener('click', () => tracker.closePrompt());
 
 // ── Boot ──────────────────────────────────────────────────────────────────────
 
+loadTasks();
 activityEl.focus();

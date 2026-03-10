@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta http-equiv="Content-Security-Policy"
-        content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline';" />
+        content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:;" />
   <title>Daily Tracker</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
@@ -34,6 +34,10 @@
         <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd"/></svg>
         History
       </button>
+      <button class="nav-item" data-panel="finance">
+        <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z"/><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clip-rule="evenodd"/></svg>
+        Finance
+      </button>
     </nav>
 
     <div class="sidebar-bottom">
@@ -41,6 +45,19 @@
       <button id="btn-reflection" class="btn-reflection">Evening Reflection</button>
     </div>
   </aside>
+
+  <!-- ── Content column (banner + main stacked) ──────────────────────────── -->
+  <div class="content-col">
+
+  <!-- ── Update banner ────────────────────────────────────────────────────── -->
+  <div id="update-banner" class="update-banner hidden">
+    <span id="update-banner-text">A new version is available!</span>
+    <div id="update-progress-bar-wrap" class="update-progress-wrap hidden">
+      <div id="update-progress-bar" class="update-progress-bar"></div>
+    </div>
+    <button id="update-action-btn" class="update-action-btn">Download update</button>
+    <button id="update-dismiss-btn" class="update-dismiss-btn" title="Dismiss">&#x2715;</button>
+  </div>
 
   <!-- ── Main content ─────────────────────────────────────────────────────── -->
   <main class="main">
@@ -209,8 +226,65 @@
       </div>
     </section>
 
-  </main>
+    <!-- FINANCE panel -->
+    <section class="panel hidden" id="panel-finance">
+      <div class="panel-header">
+        <div class="panel-title">Finance</div>
+        <button class="btn btn-primary" id="btn-add-finance">+ Add Transaction</button>
+      </div>
 
+      <!-- Entry form -->
+      <div id="finance-form" class="finance-form hidden">
+        <div class="finance-type-row" id="finance-type-row">
+          <button class="type-pill" data-type="income">Income</button>
+          <button class="type-pill" data-type="expense">Expense</button>
+        </div>
+        <div class="form-row-2">
+          <input type="number" id="ff-amount" class="form-input" placeholder="Amount" min="0" step="0.01" />
+          <select id="ff-category" class="form-select">
+            <option value="">Category</option>
+          </select>
+        </div>
+        <div class="form-row-2">
+          <input type="text" id="ff-desc" class="form-input" placeholder="Description (optional)" maxlength="300" />
+          <input type="date" id="ff-date" class="form-input" />
+        </div>
+        <div class="form-btns">
+          <button class="btn btn-ghost btn-sm" id="btn-ff-cancel">Cancel</button>
+          <button class="btn btn-primary btn-sm" id="btn-ff-save">Add</button>
+        </div>
+      </div>
+
+      <!-- Summary cards -->
+      <div class="fin-summary-grid">
+        <div class="fin-summary-card">
+          <div class="fin-summary-label">This Month's Income</div>
+          <div class="fin-summary-value fin-positive" id="fin-month-income">—</div>
+        </div>
+        <div class="fin-summary-card">
+          <div class="fin-summary-label">This Month's Expenses</div>
+          <div class="fin-summary-value fin-negative" id="fin-month-expense">—</div>
+        </div>
+        <div class="fin-summary-card">
+          <div class="fin-summary-label">Net Balance</div>
+          <div class="fin-summary-value" id="fin-month-net">—</div>
+        </div>
+      </div>
+
+      <!-- 30-day chart -->
+      <div class="fin-chart-wrap">
+        <canvas id="finance-chart"></canvas>
+      </div>
+
+      <!-- Transaction list -->
+      <h2 class="section-heading" style="margin-top:24px;flex-shrink:0;">Recent Transactions</h2>
+      <div id="finance-list"></div>
+    </section>
+
+  </main>
+  </div><!-- .content-col -->
+
+  <script src="chart.min.js"></script>
   <script src="renderer.js"></script>
 </body>
 </html>

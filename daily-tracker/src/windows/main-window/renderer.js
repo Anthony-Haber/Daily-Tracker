@@ -91,10 +91,11 @@ function setupNav() {
       activePanelId = panelId;
 
       // Load section data
-      if (panelId === 'today')   await loadTodayPanel();
+      if (panelId === 'today')        await loadTodayPanel();
       else if (panelId === 'tasks')   { await loadTasksPanel(); setupKanbanDrop(); }
       else if (panelId === 'meals')   await loadMealsPanel();
       else if (panelId === 'history') await loadHistoryPanel();
+      else if (panelId === 'finance') await loadFinancePanel();
     });
   });
 
@@ -681,6 +682,225 @@ function setupCalNav() {
   });
 }
 
+// ── FINANCE section ───────────────────────────────────────────────────────────
+
+/* global Chart */
+
+let financeChart        = null;
+let financeTypeSelected = 'expense';
+
+const INCOME_CATEGORIES  = ['salary', 'freelance', 'investment', 'gift', 'other'];
+const EXPENSE_CATEGORIES = ['food', 'rent', 'transport', 'utilities', 'healthcare', 'entertainment', 'shopping', 'other'];
+
+function formatCurrency(amount) {
+  return '$' + Number(amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+async function loadFinancePanel() {
+  await Promise.all([
+    loadFinanceSummary(),
+    loadFinanceChart(),
+    loadFinanceList(),
+  ]);
+}
+
+async function loadFinanceSummary() {
+  const now     = new Date();
+  const summary = await tracker.getMonthlyFinanceSummary(now.getFullYear(), now.getMonth() + 1);
+
+  let income = 0, expense = 0;
+  for (const row of summary) {
+    if (row.type === 'income')  income  = row.total;
+    if (row.type === 'expense') expense = row.total;
+  }
+  const net = income - expense;
+
+  $('fin-month-income').textContent  = formatCurrency(income);
+  $('fin-month-expense').textContent = formatCurrency(expense);
+
+  const netEl = $('fin-month-net');
+  netEl.textContent = formatCurrency(net);
+  netEl.className   = 'fin-summary-value ' + (net >= 0 ? 'fin-positive' : 'fin-negative');
+}
+
+async function loadFinanceChart() {
+  const rows = await tracker.getFinancesLast30Days();
+
+  // Build ordered list of the last 30 dates
+  const dates = [];
+  for (let i = 29; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    dates.push(localDateStr(d));
+  }
+
+  const incomeByDate  = {};
+  const expenseByDate = {};
+  for (const row of rows) {
+    if (row.type === 'income')  incomeByDate[row.date]  = row.total;
+    if (row.type === 'expense') expenseByDate[row.date] = row.total;
+  }
+
+  const labels      = dates.map(d => d.slice(5));   // MM-DD
+  const incomeData  = dates.map(d => incomeByDate[d]  || 0);
+  const expenseData = dates.map(d => expenseByDate[d] || 0);
+
+  const ctx = $('finance-chart').getContext('2d');
+
+  if (financeChart) {
+    financeChart.data.labels            = labels;
+    financeChart.data.datasets[0].data  = incomeData;
+    financeChart.data.datasets[1].data  = expenseData;
+    financeChart.update();
+    return;
+  }
+
+  financeChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        {
+          label:           'Income',
+          data:            incomeData,
+          borderColor:     '#10B981',
+          backgroundColor: 'rgba(16,185,129,.12)',
+          fill:            true,
+          tension:         0.35,
+          pointRadius:     3,
+          pointHoverRadius:5,
+          borderWidth:     2,
+        },
+        {
+          label:           'Expenses',
+          data:            expenseData,
+          borderColor:     '#EF4444',
+          backgroundColor: 'rgba(239,68,68,.10)',
+          fill:            true,
+          tension:         0.35,
+          pointRadius:     3,
+          pointHoverRadius:5,
+          borderWidth:     2,
+        },
+      ],
+    },
+    options: {
+      responsive:          true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: {
+          position: 'top',
+          labels: { font: { size: 12, family: "'Segoe UI', system-ui, sans-serif" }, boxWidth: 12, padding: 16 },
+        },
+        tooltip: {
+          callbacks: {
+            label: ctx => `${ctx.dataset.label}: ${formatCurrency(ctx.parsed.y)}`,
+          },
+        },
+      },
+      scales: {
+        x: {
+          grid:  { color: 'rgba(0,0,0,.04)' },
+          ticks: { font: { size: 11 }, maxTicksLimit: 10, color: '#6B7280' },
+        },
+        y: {
+          beginAtZero: true,
+          grid:  { color: 'rgba(0,0,0,.04)' },
+          ticks: { font: { size: 11 }, color: '#6B7280', callback: v => '$' + v.toLocaleString() },
+        },
+      },
+    },
+  });
+}
+
+async function loadFinanceList() {
+  const transactions = await tracker.getFinances({ limit: 50 });
+  renderFinanceList(transactions);
+}
+
+function renderFinanceList(transactions) {
+  const list = $('finance-list');
+
+  if (!transactions.length) {
+    list.innerHTML = '<p class="empty-hint">No transactions yet. Add your first income or expense above.</p>';
+    return;
+  }
+
+  list.innerHTML = transactions.map(t => `
+    <div class="finance-item">
+      <div class="fi-date">${escapeHtml(t.date)}</div>
+      <span class="fi-type-badge fi-type-${escapeHtml(t.type)}">${t.type === 'income' ? 'Income' : 'Expense'}</span>
+      <div class="fi-body">
+        <span class="fi-category">${escapeHtml(t.category || '—')}</span>
+        ${t.description ? `<span class="fi-desc">${escapeHtml(t.description)}</span>` : ''}
+      </div>
+      <span class="fi-amount ${t.type === 'income' ? 'fi-amount-income' : 'fi-amount-expense'}">
+        ${t.type === 'income' ? '+' : '−'}${formatCurrency(t.amount)}
+      </span>
+      <button class="tc-btn tc-delete fi-delete" data-id="${t.id}" title="Delete">✕</button>
+    </div>
+  `).join('');
+
+  list.querySelectorAll('.fi-delete').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      await tracker.deleteFinance(parseInt(btn.dataset.id));
+      await loadFinancePanel();
+    });
+  });
+}
+
+function selectFinanceType(type) {
+  financeTypeSelected = type;
+  $$('#finance-type-row .type-pill').forEach(b => {
+    b.classList.toggle('selected', b.dataset.type === type);
+  });
+
+  const cats   = type === 'income' ? INCOME_CATEGORIES : EXPENSE_CATEGORIES;
+  const select = $('ff-category');
+  select.innerHTML = '<option value="">Category</option>' +
+    cats.map(c => `<option value="${c}">${c.charAt(0).toUpperCase() + c.slice(1)}</option>`).join('');
+}
+
+function setupFinanceForm() {
+  $('btn-add-finance').addEventListener('click', () => {
+    const form = $('finance-form');
+    form.classList.toggle('hidden');
+    if (!form.classList.contains('hidden')) {
+      $('ff-date').value = todayStr();
+      selectFinanceType('expense');
+      $('ff-amount').focus();
+    }
+  });
+
+  $$('#finance-type-row .type-pill').forEach(btn => {
+    btn.addEventListener('click', () => selectFinanceType(btn.dataset.type));
+  });
+
+  $('btn-ff-cancel').addEventListener('click', () => {
+    $('finance-form').classList.add('hidden');
+  });
+
+  $('btn-ff-save').addEventListener('click', async () => {
+    const amount = parseFloat($('ff-amount').value);
+    if (!amount || amount <= 0) { $('ff-amount').focus(); return; }
+
+    await tracker.insertFinance({
+      date:        $('ff-date').value || todayStr(),
+      type:        financeTypeSelected,
+      amount,
+      category:    $('ff-category').value || null,
+      description: $('ff-desc').value.trim() || null,
+    });
+
+    $('ff-amount').value   = '';
+    $('ff-category').value = '';
+    $('ff-desc').value     = '';
+    $('finance-form').classList.add('hidden');
+    await loadFinancePanel();
+  });
+}
+
 // ── Boot ──────────────────────────────────────────────────────────────────────
 
 async function init() {
@@ -688,7 +908,65 @@ async function init() {
   setupTaskForm();
   setupMealForm();
   setupCalNav();
+  setupFinanceForm();
   await loadTodayPanel();
 }
 
 init();
+
+// ── Auto-updater banner ───────────────────────────────────────────────────────
+
+(function setupUpdateBanner() {
+  const banner      = $('update-banner');
+  const bannerText  = $('update-banner-text');
+  const progressWrap= $('update-progress-bar-wrap');
+  const progressBar = $('update-progress-bar');
+  const actionBtn   = $('update-action-btn');
+  const dismissBtn  = $('update-dismiss-btn');
+
+  let downloaded = false;
+
+  function showBanner() { banner.classList.remove('hidden'); }
+
+  // Update available — show banner with download button
+  window.api.onUpdateAvailable((info) => {
+    bannerText.textContent = `v${info.version} is available!`;
+    actionBtn.textContent  = 'Download update';
+    showBanner();
+  });
+
+  // Download progress — swap text for progress bar
+  window.api.onUpdateDownloadProgress((progress) => {
+    showBanner();
+    bannerText.textContent = 'Downloading update…';
+    progressWrap.classList.remove('hidden');
+    actionBtn.classList.add('hidden');
+    progressBar.style.width = Math.round(progress.percent) + '%';
+  });
+
+  // Download complete — show restart button
+  window.api.onUpdateDownloaded(() => {
+    downloaded = true;
+    progressWrap.classList.add('hidden');
+    bannerText.textContent = 'Update ready to install.';
+    actionBtn.textContent  = 'Restart & Install';
+    actionBtn.classList.remove('hidden');
+    showBanner();
+  });
+
+  // Action button: download (first click triggers auto-download via electron-updater)
+  // or restart & install once downloaded
+  actionBtn.addEventListener('click', () => {
+    if (downloaded) {
+      window.api.updaterInstall();
+    } else {
+      window.api.updaterCheckNow();
+      actionBtn.disabled = true;
+      actionBtn.textContent = 'Downloading…';
+    }
+  });
+
+  dismissBtn.addEventListener('click', () => {
+    banner.classList.add('hidden');
+  });
+}());

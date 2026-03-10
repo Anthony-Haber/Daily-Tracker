@@ -14,8 +14,10 @@
   --text:         #111827;
   --text-muted:   #6b7280;
   --text-light:   #9ca3af;
+  --success:      #10B981;
   --success-bg:   #ecfdf5;
   --success-text: #065f46;
+  --success-border:#6ee7b7;
   --warn:         #f59e0b;
 
   --radius:       8px;
@@ -224,6 +226,121 @@ html, body {
   border-color: var(--accent);
   background: var(--accent-light);
   transform: scale(1.06);
+}
+
+/* ── Task selector ───────────────────────────────────────────────────────────── */
+.task-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  max-height: 108px;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+
+.task-pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border-radius: var(--radius-pill);
+  border: 1.5px solid var(--border);
+  background: transparent;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 12px;
+  transition: border-color .12s, background .12s;
+  text-align: left;
+  max-width: 100%;
+}
+
+.task-pill:hover {
+  border-color: var(--accent);
+}
+
+.task-pill.selected {
+  border-color: var(--accent);
+  background: var(--accent-light);
+}
+
+.task-pill-title {
+  color: var(--text);
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 260px;
+}
+
+.task-pill.selected .task-pill-title {
+  color: var(--accent);
+}
+
+.task-pill-status {
+  color: var(--text-light);
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .4px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.task-pill.selected .task-pill-status {
+  color: var(--accent);
+  opacity: .75;
+}
+
+/* ── Mark-complete row ───────────────────────────────────────────────────────── */
+.complete-row {
+  margin-top: 4px;
+}
+
+.complete-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 12px 5px 9px;
+  border-radius: var(--radius-pill);
+  border: 1.5px solid var(--border);
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  user-select: none;
+  transition: border-color .12s, background .12s, color .12s;
+}
+
+.complete-label:hover {
+  border-color: var(--success-border);
+  color: var(--success-text);
+  background: var(--success-bg);
+}
+
+.complete-label.checked {
+  border-color: var(--success-border);
+  background: var(--success-bg);
+  color: var(--success-text);
+}
+
+.complete-check {
+  width: 14px;
+  height: 14px;
+  cursor: pointer;
+  accent-color: var(--success);
+  flex-shrink: 0;
+}
+
+/* Strikethrough + green status when task is queued for completion */
+.task-pill.will-complete .task-pill-title {
+  text-decoration: line-through;
+  opacity: .55;
+}
+
+.task-pill.will-complete .task-pill-status {
+  color: var(--success-text);
+  opacity: 1;
 }
 
 /* ── Actions footer ──────────────────────────────────────────────────────────── */

@@ -163,6 +163,15 @@ body {
   background: var(--accent-light);
 }
 
+/* ── Content column (banner + main stacked) ──────────────────────────────────── */
+.content-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+}
+
 /* ── Main area ───────────────────────────────────────────────────────────────── */
 .main {
   flex: 1;
@@ -1110,6 +1119,137 @@ body {
   text-align: center;
 }
 
+/* ── Finance section ─────────────────────────────────────────────────────────── */
+.finance-form {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 16px;
+  margin-bottom: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  box-shadow: var(--shadow-sm);
+  flex-shrink: 0;
+}
+
+.finance-type-row {
+  display: flex;
+  gap: 8px;
+}
+
+.fin-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+  flex-shrink: 0;
+}
+
+.fin-summary-card {
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  padding: 20px 16px;
+  text-align: center;
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border);
+}
+
+.fin-summary-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: .6px;
+  color: var(--text-muted);
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.fin-summary-value {
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.fin-positive { color: var(--success); }
+.fin-negative { color: var(--danger); }
+
+.fin-chart-wrap {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 20px 20px 16px;
+  height: 260px;
+  position: relative;
+  box-shadow: var(--shadow-sm);
+  flex-shrink: 0;
+  margin-bottom: 4px;
+}
+
+.finance-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 11px 14px;
+  margin-bottom: 8px;
+  font-size: 13px;
+  box-shadow: var(--shadow-sm);
+}
+
+.fi-date {
+  color: var(--text-muted);
+  font-size: 12px;
+  min-width: 76px;
+  flex-shrink: 0;
+}
+
+.fi-type-badge {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.fi-type-income  { background: var(--success-light); color: var(--success); }
+.fi-type-expense { background: var(--danger-light);  color: var(--danger); }
+
+.fi-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.fi-category {
+  font-weight: 600;
+  color: var(--text);
+  text-transform: capitalize;
+}
+
+.fi-desc {
+  font-size: 12px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.fi-amount {
+  font-weight: 700;
+  font-size: 14px;
+  flex-shrink: 0;
+  min-width: 90px;
+  text-align: right;
+}
+
+.fi-amount-income  { color: var(--success); }
+.fi-amount-expense { color: var(--danger); }
+
 /* ── Utility ─────────────────────────────────────────────────────────────────── */
 .hidden { display: none !important; }
 
@@ -1118,3 +1258,53 @@ body {
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--border-2); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--text-light); }
+
+/* ── Update banner ───────────────────────────────────────────────────────────── */
+.update-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 500;
+  flex-shrink: 0;
+}
+.update-banner.hidden { display: none; }
+.update-banner span { flex: 1; }
+.update-progress-wrap {
+  flex: 1;
+  height: 6px;
+  background: rgba(255,255,255,.3);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.update-progress-wrap.hidden { display: none; }
+.update-progress-bar {
+  height: 100%;
+  width: 0%;
+  background: #fff;
+  border-radius: 3px;
+  transition: width .2s;
+}
+.update-action-btn {
+  padding: 4px 12px;
+  background: #fff;
+  color: var(--accent);
+  border: none;
+  border-radius: var(--radius);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.update-action-btn:hover { background: var(--accent-light); }
+.update-dismiss-btn {
+  background: transparent;
+  border: none;
+  color: rgba(255,255,255,.7);
+  font-size: 16px;
+  line-height: 1;
+  padding: 0 2px;
+}
+.update-dismiss-btn:hover { color: #fff; }

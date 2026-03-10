@@ -6,6 +6,7 @@ const os        = require('os');
 const db        = require('./src/db');
 const scheduler = require('./src/scheduler');
 const settings  = require('./src/settings');
+const { autoUpdater } = require('electron-updater');
 
 // ── Windows: required for Action Center notifications ─────────────────────────
 // Must be set before app is ready.
@@ -102,7 +103,7 @@ function createPromptWindow() {
     return;
   }
 
-  promptWindow = new BrowserWindow(popupPrefs({ width: 500, height: 400 }));
+  promptWindow = new BrowserWindow(popupPrefs({ width: 500, height: 490 }));
   promptWindow.setMenuBarVisibility(false);
   promptWindow.loadFile(path.join(__dirname, 'src', 'windows', 'prompt-window', 'index.html'));
   promptWindow.once('ready-to-show', () => { promptWindow.show(); promptWindow.focus(); });
@@ -231,6 +232,10 @@ function rebuildTrayMenu() {
       label: 'Settings',
       click: () => createSettingsWindow(),
     },
+    {
+      label: 'Check for Updates',
+      click: () => { autoUpdater.checkForUpdatesAndNotify().catch(() => {}); },
+    },
     { type: 'separator' },
     {
       label: 'Quit',
@@ -297,6 +302,13 @@ ipcMain.handle('db:upsertReflection',   safeHandle((_e, p)    => db.upsertReflec
 ipcMain.handle('db:getReflectionByDate',safeHandle((_e, date) => db.getReflectionByDate(date)));
 ipcMain.handle('db:getAllReflections',  safeHandle(()          => db.getAllReflections()));
 ipcMain.handle('db:deleteReflection',  safeHandle((_e, id)   => db.deleteReflection(id)));
+
+// finances
+ipcMain.handle('db:insertFinance',            safeHandle((_e, p)      => db.insertFinance(p)));
+ipcMain.handle('db:getFinances',              safeHandle((_e, opts)   => db.getFinances(opts)));
+ipcMain.handle('db:getFinancesLast30Days',    safeHandle(()            => db.getFinancesLast30Days()));
+ipcMain.handle('db:getMonthlyFinanceSummary', safeHandle((_e, yr, mo) => db.getMonthlyFinanceSummary(yr, mo)));
+ipcMain.handle('db:deleteFinance',            safeHandle((_e, id)     => db.deleteFinance(id)));
 
 // db meta
 ipcMain.handle('db:getDbPath',      safeHandle(() => db.getDbPath()));
@@ -377,6 +389,36 @@ ipcMain.on('window:open', (_e, name) => {
   }
 });
 
+// ── Auto-updater ──────────────────────────────────────────────────────────────
+
+function setupAutoUpdater() {
+  // Silence all errors — never bother the user if update checks fail.
+  autoUpdater.on('error', () => {});
+
+  autoUpdater.on('update-available', (info) => {
+    mainWindow?.webContents.send('updater:update-available', info);
+  });
+
+  autoUpdater.on('download-progress', (progress) => {
+    mainWindow?.webContents.send('updater:download-progress', progress);
+  });
+
+  autoUpdater.on('update-downloaded', (info) => {
+    mainWindow?.webContents.send('updater:update-downloaded', info);
+  });
+
+  // Check silently on startup; errors swallowed by the listener above.
+  autoUpdater.checkForUpdatesAndNotify().catch(() => {});
+}
+
+ipcMain.handle('updater:checkNow', () => {
+  autoUpdater.checkForUpdatesAndNotify().catch(() => {});
+});
+
+ipcMain.handle('updater:install', () => {
+  autoUpdater.quitAndInstall();
+});
+
 // ── App lifecycle ─────────────────────────────────────────────────────────────
 
 app.whenReady().then(async () => {
@@ -392,6 +434,7 @@ app.whenReady().then(async () => {
   createTray();
   createMainWindow();
   scheduler.start({ onPrompt: createPromptWindow, onReflection: createReflectionWindow });
+  setupAutoUpdater();
 });
 
 // Keep the app alive in the tray when all windows are closed.

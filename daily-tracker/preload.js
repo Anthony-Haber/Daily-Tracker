@@ -17,6 +17,13 @@ contextBridge.exposeInMainWorld('api', {
   saveReflection: (data)     => ipcRenderer.invoke('db:upsertReflection',    data),
   getReflection:  (date)     => ipcRenderer.invoke('db:getReflectionByDate', date),
 
+  // Finances
+  insertFinance:            (data)       => ipcRenderer.invoke('db:insertFinance',            data),
+  getFinances:              (opts)       => ipcRenderer.invoke('db:getFinances',              opts),
+  getFinancesLast30Days:    ()           => ipcRenderer.invoke('db:getFinancesLast30Days'),
+  getMonthlyFinanceSummary: (year, month)=> ipcRenderer.invoke('db:getMonthlyFinanceSummary', year, month),
+  deleteFinance:            (id)         => ipcRenderer.invoke('db:deleteFinance',            id),
+
   // DB meta
   getDbPath:      ()         => ipcRenderer.invoke('db:getDbPath'),
   changeDbFolder: ()         => ipcRenderer.invoke('db:changeDbFolder'),
@@ -35,6 +42,13 @@ contextBridge.exposeInMainWorld('api', {
   // App controls
   closeWindow: ()     => ipcRenderer.send('window:close'),
   openWindow:  (name) => ipcRenderer.send('window:open', name),
+
+  // Auto-updater
+  updaterCheckNow:         ()   => ipcRenderer.invoke('updater:checkNow'),
+  updaterInstall:          ()   => ipcRenderer.invoke('updater:install'),
+  onUpdateAvailable:       (cb) => ipcRenderer.on('updater:update-available',  (_e, info)     => cb(info)),
+  onUpdateDownloadProgress:(cb) => ipcRenderer.on('updater:download-progress', (_e, progress) => cb(progress)),
+  onUpdateDownloaded:      (cb) => ipcRenderer.on('updater:update-downloaded', (_e, info)     => cb(info)),
 });
 
 // ── window.tracker — legacy API (kept for backwards compatibility) ─────────────
@@ -66,6 +80,13 @@ contextBridge.exposeInMainWorld('tracker', {
   getReflectionByDate:(date)   => ipcRenderer.invoke('db:getReflectionByDate', date),
   getAllReflections:   ()       => ipcRenderer.invoke('db:getAllReflections'),
   deleteReflection:   (id)     => ipcRenderer.invoke('db:deleteReflection', id),
+
+  // ── finances ─────────────────────────────────────────────────────────────────
+  insertFinance:            (data)        => ipcRenderer.invoke('db:insertFinance',            data),
+  getFinances:              (opts)        => ipcRenderer.invoke('db:getFinances',              opts),
+  getFinancesLast30Days:    ()            => ipcRenderer.invoke('db:getFinancesLast30Days'),
+  getMonthlyFinanceSummary: (year, month) => ipcRenderer.invoke('db:getMonthlyFinanceSummary', year, month),
+  deleteFinance:            (id)          => ipcRenderer.invoke('db:deleteFinance',            id),
 
   // ── db meta ─────────────────────────────────────────────────────────────────
   getDbPath:      () => ipcRenderer.invoke('db:getDbPath'),

@@ -41,14 +41,21 @@
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
       "shortcutName": "Daily Tracker"
+    },
+    "publish": {
+      "provider": "github",
+      "owner": "Anthony-Haber",
+      "repo": "Daily-Tracker"
     }
   },
   "dependencies": {
     "better-sqlite3": "^11.8.1",
-    "electron-store": "^8.2.0"
+    "electron-store": "^8.2.0",
+    "electron-updater": "^6.8.3"
   },
   "devDependencies": {
     "@electron/rebuild": "^3.6.0",
+    "chart.js": "^4.5.1",
     "electron": "^29.1.0",
     "electron-builder": "^24.13.3",
     "electron-rebuild": "^3.2.9"

@@ -15,7 +15,20 @@ const formContent      = document.getElementById('form-content');
 const successState     = document.getElementById('success-state');
 const btnClose         = document.getElementById('btn-close');
 
-const MOOD_LABELS = ['', 'Rough', 'Okay', 'Good', 'Great', 'Excellent'];
+function getMoodLabel(value) {
+  if (value >= 9.5) return { emoji: '🔥', word: 'Excellent' };
+  if (value >= 8)   return { emoji: '😊', word: 'Great' };
+  if (value >= 6)   return { emoji: '🙂', word: 'Good' };
+  if (value >= 4)   return { emoji: '😐', word: 'Okay' };
+  if (value >= 2)   return { emoji: '😔', word: 'Rough' };
+  return { emoji: '😴', word: 'Exhausted' };
+}
+
+function updateMoodDisplay(value) {
+  const v = parseFloat(value);
+  const { emoji, word } = getMoodLabel(v);
+  moodCurrent.textContent = `${v.toFixed(1)}  ${emoji}  ${word}`;
+}
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -32,14 +45,14 @@ function formatDate(dateStr) {
 
 const today = todayStr();
 headerTitle.textContent = `Evening Reflection \u2014 ${formatDate(today)}`;
-moodCurrent.textContent = MOOD_LABELS[parseInt(moodSlider.value, 10)];
+updateMoodDisplay(moodSlider.value);
 
 (async () => {
   const existing = await tracker.getReflectionByDate(today);
   if (existing) {
     if (existing.mood) {
-      moodSlider.value        = existing.mood;
-      moodCurrent.textContent = MOOD_LABELS[existing.mood];
+      moodSlider.value = existing.mood;
+      updateMoodDisplay(existing.mood);
     }
     highlightsEl.value = existing.highlights     ?? '';
     challengesEl.value = existing.challenges     ?? '';
@@ -54,7 +67,7 @@ moodCurrent.textContent = MOOD_LABELS[parseInt(moodSlider.value, 10)];
 // ── Mood slider ───────────────────────────────────────────────────────────────
 
 moodSlider.addEventListener('input', () => {
-  moodCurrent.textContent = MOOD_LABELS[parseInt(moodSlider.value, 10)];
+  updateMoodDisplay(moodSlider.value);
 });
 
 // ── Journal — char count + debounced auto-save ────────────────────────────────
@@ -62,7 +75,7 @@ moodSlider.addEventListener('input', () => {
 function getFormData() {
   return {
     date:          today,
-    mood:          parseInt(moodSlider.value, 10),
+    mood:          parseFloat(moodSlider.value),
     highlights:    highlightsEl.value.trim(),
     challenges:    challengesEl.value.trim(),
     gratitude:     gratitudeEl.value.trim(),

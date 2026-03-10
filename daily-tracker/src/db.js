@@ -81,6 +81,7 @@ async function init() {
     createTables();
     try { db.exec('ALTER TABLE tasks ADD COLUMN category TEXT'); } catch (_) {}
     try { db.exec('ALTER TABLE reflections ADD COLUMN journal_entry TEXT'); } catch (_) {}
+    try { db.exec('ALTER TABLE hourly_logs ADD COLUMN task_id INTEGER REFERENCES tasks(id)'); } catch (_) {}
   } catch (err) {
     dialog.showErrorBox(
       'Failed to open database',
@@ -142,11 +143,21 @@ function createTables() {
     CREATE TABLE IF NOT EXISTS reflections (
       id             INTEGER PRIMARY KEY AUTOINCREMENT,
       date           TEXT NOT NULL UNIQUE,
-      mood           INTEGER,    -- 1-5
+      mood           REAL,       -- 1.0-10.0 (continuous)
       highlights     TEXT,
       challenges     TEXT,
       gratitude      TEXT,
       tomorrow_goals TEXT
+    );
+
+    CREATE TABLE IF NOT EXISTS finances (
+      id          INTEGER PRIMARY KEY AUTOINCREMENT,
+      date        TEXT NOT NULL,
+      type        TEXT NOT NULL,
+      amount      REAL NOT NULL,
+      category    TEXT,
+      description TEXT,
+      created_at  TEXT NOT NULL
     );
 
     CREATE INDEX IF NOT EXISTS idx_hourly_logs_timestamp ON hourly_logs(timestamp);
@@ -154,6 +165,8 @@ function createTables() {
     CREATE INDEX IF NOT EXISTS idx_tasks_due_date        ON tasks(due_date);
     CREATE INDEX IF NOT EXISTS idx_meals_timestamp       ON meals(timestamp);
     CREATE INDEX IF NOT EXISTS idx_reflections_date      ON reflections(date);
+    CREATE INDEX IF NOT EXISTS idx_finances_date         ON finances(date);
+    CREATE INDEX IF NOT EXISTS idx_finances_type         ON finances(type);
   `);
 }
 
@@ -166,12 +179,12 @@ function now() {
 
 // ── hourly_logs CRUD ──────────────────────────────────────────────────────────
 
-function insertLog({ activity, category = null, mood = null, timestamp = now() }) {
+function insertLog({ activity, category = null, mood = null, task_id = null, timestamp = now() }) {
   return safeDB(() => {
     const info = db.prepare(`
-      INSERT INTO hourly_logs (timestamp, activity, category, mood)
-      VALUES (?, ?, ?, ?)
-    `).run(timestamp, activity, category, mood);
+      INSERT INTO hourly_logs (timestamp, activity, category, mood, task_id)
+      VALUES (?, ?, ?, ?, ?)
+    `).run(timestamp, activity, category, mood, task_id ?? null);
     return { id: Number(info.lastInsertRowid) };
   }, null);
 }
@@ -344,6 +357,56 @@ function deleteReflection(id) {
   );
 }
 
+// ── finances CRUD ─────────────────────────────────────────────────────────────
+
+function insertFinance({ date, type, amount, category = null, description = null }) {
+  return safeDB(() => {
+    const info = db.prepare(`
+      INSERT INTO finances (date, type, amount, category, description, created_at)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `).run(date, type, amount, category, description, now());
+    return { id: Number(info.lastInsertRowid) };
+  }, null);
+}
+
+function getFinances({ limit = 100 } = {}) {
+  return safeDB(() =>
+    db.prepare(`
+      SELECT * FROM finances ORDER BY date DESC, created_at DESC LIMIT ?
+    `).all(limit),
+  []);
+}
+
+function getFinancesLast30Days() {
+  return safeDB(() =>
+    db.prepare(`
+      SELECT date, type, SUM(amount) AS total
+      FROM finances
+      WHERE date >= date('now', '-29 days')
+      GROUP BY date, type
+      ORDER BY date ASC
+    `).all(),
+  []);
+}
+
+function getMonthlyFinanceSummary(year, month) {
+  const prefix = `${year}-${String(month).padStart(2, '0')}`;
+  return safeDB(() =>
+    db.prepare(`
+      SELECT type, SUM(amount) AS total
+      FROM finances
+      WHERE date LIKE ?
+      GROUP BY type
+    `).all(prefix + '%'),
+  []);
+}
+
+function deleteFinance(id) {
+  return safeDB(() =>
+    db.prepare('DELETE FROM finances WHERE id = ?').run(id),
+  );
+}
+
 // ── Cross-table queries ───────────────────────────────────────────────────────
 
 function getActiveDates() {
@@ -395,6 +458,13 @@ module.exports = {
   getReflectionByDate,
   getAllReflections,
   deleteReflection,
+
+  // finances
+  insertFinance,
+  getFinances,
+  getFinancesLast30Days,
+  getMonthlyFinanceSummary,
+  deleteFinance,
 
   // cross-table
   getActiveDates,

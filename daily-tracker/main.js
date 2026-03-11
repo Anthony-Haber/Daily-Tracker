@@ -415,6 +415,8 @@ ipcMain.handle('updater:checkNow', () => {
   autoUpdater.checkForUpdatesAndNotify().catch(() => {});
 });
 
+ipcMain.handle('app:getVersion', () => app.getVersion());
+
 ipcMain.handle('updater:install', () => {
   autoUpdater.quitAndInstall();
 });

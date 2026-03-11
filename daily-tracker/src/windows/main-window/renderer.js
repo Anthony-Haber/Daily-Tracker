@@ -96,6 +96,7 @@ function setupNav() {
       else if (panelId === 'meals')   await loadMealsPanel();
       else if (panelId === 'history') await loadHistoryPanel();
       else if (panelId === 'finance') await loadFinancePanel();
+      else if (panelId === 'settings') await loadSettingsPanel();
     });
   });
 
@@ -898,6 +899,95 @@ function setupFinanceForm() {
     $('ff-desc').value     = '';
     $('finance-form').classList.add('hidden');
     await loadFinancePanel();
+  });
+}
+
+// ── SETTINGS section ──────────────────────────────────────────────────────────
+
+let _settingsInitialized = false;
+
+/** Format hour integer (0-23) as "8:00 AM". */
+function fmtHour(h) {
+  const ampm = h < 12 ? 'AM' : 'PM';
+  const h12  = h % 12 || 12;
+  return `${h12}:00 ${ampm}`;
+}
+
+async function loadSettingsPanel() {
+  if (!_settingsInitialized) {
+    await setupSettingsPanel();
+    _settingsInitialized = true;
+  }
+
+  // Refresh live values every time panel is opened
+  const [s, dbPath] = await Promise.all([
+    tracker.getSettings(),
+    tracker.getDbPath(),
+  ]);
+
+  $('sp-toggle-reminders').checked = s.remindersEnabled;
+  $('sp-sel-start').value          = s.reminderStartHour;
+  $('sp-sel-end').value            = s.reminderEndHour;
+  $('sp-toggle-startup').checked   = s.launchOnStartup;
+  $('sp-db-path').textContent      = dbPath || 'Not configured';
+}
+
+async function setupSettingsPanel() {
+  // Populate hour selects
+  const startSel = $('sp-sel-start');
+  const endSel   = $('sp-sel-end');
+  for (let h = 0; h < 24; h++) {
+    const label = fmtHour(h);
+    startSel.appendChild(new Option(label, h));
+    endSel.appendChild(new Option(label, h));
+  }
+
+  // Load app version
+  const version = await tracker.appGetVersion();
+  $('sp-version').textContent = version || '—';
+
+  // Reminders toggle
+  $('sp-toggle-reminders').addEventListener('change', async (e) => {
+    await tracker.setSetting('remindersEnabled', e.target.checked);
+  });
+
+  // Hour selects
+  $('sp-sel-start').addEventListener('change', async (e) => {
+    await tracker.setSetting('reminderStartHour', parseInt(e.target.value, 10));
+  });
+
+  $('sp-sel-end').addEventListener('change', async (e) => {
+    await tracker.setSetting('reminderEndHour', parseInt(e.target.value, 10));
+  });
+
+  // Startup toggle
+  $('sp-toggle-startup').addEventListener('change', async (e) => {
+    await tracker.setAutoLaunch(e.target.checked);
+  });
+
+  // Change DB folder
+  $('sp-btn-change-db').addEventListener('click', async () => {
+    const newFolder = await tracker.changeDbFolder();
+    if (newFolder) {
+      const sep = newFolder.endsWith('/') || newFolder.endsWith('\\') ? '' : '/';
+      $('sp-db-path').textContent = newFolder + sep + 'daily-tracker.db';
+    }
+  });
+
+  // Check for updates
+  $('sp-btn-check-updates').addEventListener('click', async () => {
+    const btn = $('sp-btn-check-updates');
+    btn.disabled    = true;
+    btn.textContent = 'Checking…';
+    await tracker.updaterCheckNow();
+    setTimeout(() => {
+      btn.disabled    = false;
+      btn.textContent = 'Check for Updates';
+      const msg = $('sp-update-msg');
+      msg.textContent = 'Update check complete. You\'ll be notified if an update is available.';
+      msg.classList.remove('hidden');
+      setTimeout(() => msg.classList.add('hidden'), 4000);
+    }, 2000);
   });
 }
 

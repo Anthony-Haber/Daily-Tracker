@@ -43,6 +43,9 @@ contextBridge.exposeInMainWorld('api', {
   closeWindow: ()     => ipcRenderer.send('window:close'),
   openWindow:  (name) => ipcRenderer.send('window:open', name),
 
+  // App info
+  appGetVersion: () => ipcRenderer.invoke('app:getVersion'),
+
   // Auto-updater
   updaterCheckNow:         ()   => ipcRenderer.invoke('updater:checkNow'),
   updaterInstall:          ()   => ipcRenderer.invoke('updater:install'),
@@ -97,6 +100,10 @@ contextBridge.exposeInMainWorld('tracker', {
   getSettings:    ()           => ipcRenderer.invoke('settings:get'),
   setSetting:     (key, value) => ipcRenderer.invoke('settings:set',           key, value),
   setAutoLaunch:  (enabled)    => ipcRenderer.invoke('settings:setAutoLaunch', enabled),
+
+  // ── app info ─────────────────────────────────────────────────────────────────
+  appGetVersion:     () => ipcRenderer.invoke('app:getVersion'),
+  updaterCheckNow:   () => ipcRenderer.invoke('updater:checkNow'),
 
   // ── scheduler controls ───────────────────────────────────────────────────────
   schedulerPause:    () => ipcRenderer.invoke('scheduler:pause'),

@@ -269,9 +269,13 @@ function updateTask(id, { title, notes, status, due_date, category }) {
 }
 
 function deleteTask(id) {
-  return safeDB(() =>
-    db.prepare('DELETE FROM tasks WHERE id = ?').run(id),
-  );
+  return safeDB(() => {
+    const run = db.transaction(() => {
+      db.prepare('UPDATE hourly_logs SET task_id = NULL WHERE task_id = ?').run(id);
+      db.prepare('DELETE FROM tasks WHERE id = ?').run(id);
+    });
+    return run();
+  });
 }
 
 // ── meals CRUD ────────────────────────────────────────────────────────────────

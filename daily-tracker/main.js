@@ -287,7 +287,11 @@ ipcMain.handle('db:deleteLog',     safeHandle((_e, id)    => db.deleteLog(id)));
 ipcMain.handle('db:insertTask',    safeHandle((_e, p)     => db.insertTask(p)));
 ipcMain.handle('db:getTasks',      safeHandle((_e, opts)  => db.getTasks(opts)));
 ipcMain.handle('db:getTaskById',   safeHandle((_e, id)    => db.getTaskById(id)));
-ipcMain.handle('db:updateTask',    safeHandle((_e, id, f) => db.updateTask(id, f)));
+ipcMain.handle('db:updateTask',    safeHandle((_e, id, f) => {
+  const result = db.updateTask(id, f);
+  if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('tasks:changed');
+  return result;
+}));
 ipcMain.handle('db:deleteTask',    safeHandle((_e, id)    => db.deleteTask(id)));
 
 // meals
@@ -377,6 +381,10 @@ ipcMain.on('window:openSettings',     () => createSettingsWindow());
 // Generic sender-aware close + named open
 ipcMain.on('window:close', (e) => {
   BrowserWindow.fromWebContents(e.sender)?.close();
+});
+
+ipcMain.on('tasks:changed', () => {
+  mainWindow?.webContents.send('tasks:changed');
 });
 
 ipcMain.on('window:open', (_e, name) => {

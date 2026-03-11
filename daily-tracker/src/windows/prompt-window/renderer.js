@@ -20,9 +20,10 @@ const completeLabel = document.getElementById('complete-label');
 
 let selectedCategory = null;   // string | null
 let selectedMood     = null;   // 1-5   | null
-let selectedTaskId   = null;   // number | null
-let autoFilledTitle  = null;   // string | null — the title we injected, so we can clear it
-let markComplete     = false;  // whether to mark selected task done on submit
+let selectedTaskId     = null;   // number | null
+let selectedTaskStatus = null;   // string | null — status at time of selection
+let autoFilledTitle    = null;   // string | null — the title we injected, so we can clear it
+let markComplete       = false;  // whether to mark selected task done on submit
 let submitting       = false;
 
 // ── Clock ─────────────────────────────────────────────────────────────────────
@@ -99,8 +100,9 @@ function renderTasks(tasks) {
       if (selectedTaskId === task.id) {
         // Deselect
         pill.classList.remove('selected', 'will-complete');
-        selectedTaskId = null;
-        markComplete   = false;
+        selectedTaskId     = null;
+        selectedTaskStatus = null;
+        markComplete       = false;
         completeRow.style.display  = 'none';
         completeCheck.checked      = false;
         completeLabel.classList.remove('checked');
@@ -118,8 +120,9 @@ function renderTasks(tasks) {
             STATUS_LABEL[p.dataset.status] ?? p.dataset.status;
         });
         pill.classList.add('selected');
-        selectedTaskId = task.id;
-        markComplete   = false;
+        selectedTaskId     = task.id;
+        selectedTaskStatus = task.status;
+        markComplete       = false;
         completeCheck.checked      = false;
         completeLabel.classList.remove('checked');
         completeRow.style.display  = '';
@@ -196,8 +199,14 @@ async function submit() {
       task_id:   selectedTaskId,
     });
 
-    if (markComplete && selectedTaskId) {
-      await tracker.updateTask(selectedTaskId, { status: 'done' });
+    if (selectedTaskId) {
+      if (markComplete) {
+        await tracker.updateTask(selectedTaskId, { status: 'done' });
+        tracker.notifyTasksChanged();
+      } else if (selectedTaskStatus === 'pending') {
+        await tracker.updateTask(selectedTaskId, { status: 'in_progress' });
+        tracker.notifyTasksChanged();
+      }
     }
 
     showToast();

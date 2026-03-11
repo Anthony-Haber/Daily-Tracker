@@ -1039,6 +1039,16 @@ async function init() {
 
 init();
 
+// ── Cross-window task refresh ─────────────────────────────────────────────────
+
+tracker.onTasksChanged(() => {
+  if (activePanelId === 'tasks') {
+    loadTasksPanel().then(() => setupKanbanDrop());
+  } else if (activePanelId === 'today') {
+    loadTodayPanel();
+  }
+});
+
 // ── Auto-updater banner ───────────────────────────────────────────────────────
 
 (function setupUpdateBanner() {

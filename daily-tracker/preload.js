@@ -52,6 +52,10 @@ contextBridge.exposeInMainWorld('api', {
   onUpdateAvailable:       (cb) => ipcRenderer.on('updater:update-available',  (_e, info)     => cb(info)),
   onUpdateDownloadProgress:(cb) => ipcRenderer.on('updater:download-progress', (_e, progress) => cb(progress)),
   onUpdateDownloaded:      (cb) => ipcRenderer.on('updater:update-downloaded', (_e, info)     => cb(info)),
+
+  // Cross-window task refresh
+  notifyTasksChanged: ()   => ipcRenderer.send('tasks:changed'),
+  onTasksChanged:     (cb) => ipcRenderer.on('tasks:changed', () => cb()),
 });
 
 // ── window.tracker — legacy API (kept for backwards compatibility) ─────────────
@@ -104,6 +108,10 @@ contextBridge.exposeInMainWorld('tracker', {
   // ── app info ─────────────────────────────────────────────────────────────────
   appGetVersion:     () => ipcRenderer.invoke('app:getVersion'),
   updaterCheckNow:   () => ipcRenderer.invoke('updater:checkNow'),
+
+  // ── cross-window task refresh ────────────────────────────────────────────────
+  notifyTasksChanged: ()   => ipcRenderer.send('tasks:changed'),
+  onTasksChanged:     (cb) => ipcRenderer.on('tasks:changed', () => cb()),
 
   // ── scheduler controls ───────────────────────────────────────────────────────
   schedulerPause:    () => ipcRenderer.invoke('scheduler:pause'),

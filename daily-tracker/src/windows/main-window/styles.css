@@ -699,8 +699,12 @@ body {
 
 .tc-btn:hover { background: var(--surface-2); color: var(--text); }
 
-.tc-delete:hover { background: var(--danger-light); color: var(--danger); border-color: transparent; }
-.tc-edit:hover   { background: var(--accent-light); color: var(--accent); border-color: transparent; }
+.tc-delete:hover   { background: var(--danger-light);   color: var(--danger);   border-color: transparent; }
+.tc-edit:hover     { background: var(--accent-light);   color: var(--accent);   border-color: transparent; }
+.tc-start:hover    { background: var(--success-light);  color: var(--success);  border-color: transparent; }
+.tc-complete:hover { background: var(--success-light);  color: var(--success);  border-color: transparent; }
+.tc-pause:hover    { background: var(--warning-light);  color: var(--warning);  border-color: transparent; }
+.tc-undo:hover     { background: var(--surface-2);      color: var(--text-2);   border-color: transparent; }
 
 /* ── Category badges ─────────────────────────────────────────────────────────── */
 .cat-badge {

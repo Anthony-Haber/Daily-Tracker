@@ -257,6 +257,12 @@ function makeTaskCard(task) {
     ? `<span class="cat-badge cat-${escapeHtml(task.category)}">${escapeHtml(CAT_LABELS[task.category] || task.category)}</span>`
     : '';
 
+  const statusBtns = task.status === 'pending'
+    ? `<button class="tc-btn tc-start">▶ Start</button>`
+    : task.status === 'in_progress'
+      ? `<button class="tc-btn tc-pause">⏸ Pause</button><button class="tc-btn tc-complete">✓ Done</button>`
+      : `<button class="tc-btn tc-undo">↩ Undo</button>`;
+
   card.innerHTML = `
     <div class="tc-title">${escapeHtml(task.title)}</div>
     ${task.notes ? `<div class="tc-notes">${escapeHtml(task.notes)}</div>` : ''}
@@ -265,6 +271,7 @@ function makeTaskCard(task) {
       ${dueDateStr}
     </div>
     <div class="tc-actions">
+      ${statusBtns}
       <button class="tc-btn tc-edit">Edit</button>
       <button class="tc-btn tc-delete">Delete</button>
     </div>
@@ -275,6 +282,27 @@ function makeTaskCard(task) {
     card.classList.add('dragging');
   });
   card.addEventListener('dragend', () => card.classList.remove('dragging'));
+
+  if (task.status === 'pending') {
+    card.querySelector('.tc-start').addEventListener('click', e => {
+      e.stopPropagation();
+      changeTaskStatus(task.id, 'in_progress');
+    });
+  } else if (task.status === 'in_progress') {
+    card.querySelector('.tc-pause').addEventListener('click', e => {
+      e.stopPropagation();
+      changeTaskStatus(task.id, 'pending');
+    });
+    card.querySelector('.tc-complete').addEventListener('click', e => {
+      e.stopPropagation();
+      changeTaskStatus(task.id, 'done');
+    });
+  } else if (task.status === 'done') {
+    card.querySelector('.tc-undo').addEventListener('click', e => {
+      e.stopPropagation();
+      changeTaskStatus(task.id, 'pending');
+    });
+  }
 
   card.querySelector('.tc-edit').addEventListener('click', e => {
     e.stopPropagation();
@@ -335,6 +363,13 @@ function makeTaskEditCard(task) {
   });
 
   return card;
+}
+
+async function changeTaskStatus(taskId, newStatus) {
+  await tracker.updateTask(taskId, { status: newStatus });
+  const idx = allTasks.findIndex(t => t.id === taskId);
+  if (idx !== -1) allTasks[idx] = { ...allTasks[idx], status: newStatus };
+  renderKanban(allTasks, taskFilterDate);
 }
 
 function isOverdue(due_date, status) {

@@ -236,6 +236,18 @@ function rebuildTrayMenu() {
       label: 'Check for Updates',
       click: () => { autoUpdater.checkForUpdatesAndNotify().catch(() => {}); },
     },
+    {
+      label: 'About Daily Tracker',
+      click: () => {
+        dialog.showMessageBox({
+          type:    'info',
+          title:   'About Daily Tracker',
+          message: `Daily Tracker  v${app.getVersion()}`,
+          detail:  'Track your day, one hour at a time.\n\nLog activities, tasks, meals, and evening reflections — all stored locally on your machine.',
+          buttons: ['OK'],
+        });
+      },
+    },
     { type: 'separator' },
     {
       label: 'Quit',

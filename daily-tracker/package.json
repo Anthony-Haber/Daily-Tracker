@@ -12,7 +12,12 @@
     "build:mac": "electron-builder --mac",
     "build": "electron-builder --win --linux"
   },
+  "electronRebuildConfig": {
+    "prebuildTag": "latest"
+  },
   "build": {
+    "electronDist": "node_modules/electron/dist",
+    "npmRebuild": true,
     "appId": "com.dailytracker.app",
     "productName": "Daily Tracker",
     "files": [

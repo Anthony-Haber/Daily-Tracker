@@ -6,14 +6,11 @@
   "main": "main.js",
   "scripts": {
     "start": "electron .",
-    "postinstall": "electron-builder install-app-deps",
+    "postinstall": "electron-rebuild -f -w better-sqlite3",
     "build:win": "electron-builder --win",
     "build:linux": "electron-builder --linux",
     "build:mac": "electron-builder --mac",
     "build": "electron-builder --win --linux"
-  },
-  "electronRebuildConfig": {
-    "prebuildTag": "latest"
   },
   "build": {
     "electronDist": "node_modules/electron/dist",

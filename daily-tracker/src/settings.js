@@ -64,12 +64,11 @@ function linuxAutostartPath() {
 
 /** Content of the .desktop file used for Linux autostart. */
 function desktopContent() {
-  const exe = app.getPath('exe');
   return [
     '[Desktop Entry]',
     'Type=Application',
     'Name=Daily Tracker',
-    `Exec=${exe}`,
+    `Exec=${process.execPath} --no-sandbox`,
     'Hidden=false',
     'NoDisplay=false',
     'X-GNOME-Autostart-enabled=true',

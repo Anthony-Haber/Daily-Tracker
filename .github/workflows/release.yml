@@ -7,74 +7,86 @@ on:
 jobs:
   build-windows:
     runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: ./daily-tracker
     steps:
       - uses: actions/checkout@v4
-      
+
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
           cache: 'npm'
-      
+          cache-dependency-path: daily-tracker/package-lock.json
+
       - name: Install dependencies
         run: npm ci
-      
+
       - name: Build Windows app
         run: npm run build:win
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      
+
       - uses: actions/upload-artifact@v4
         with:
           name: windows-build
-          path: dist/*.exe
+          path: daily-tracker/dist/*.exe
           if-no-files-found: error
 
   build-linux:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./daily-tracker
     steps:
       - uses: actions/checkout@v4
-      
+
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
           cache: 'npm'
-      
+          cache-dependency-path: daily-tracker/package-lock.json
+
       - name: Install dependencies
         run: npm ci
-      
+
       - name: Build Linux app
         run: npm run build:linux
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      
+
       - uses: actions/upload-artifact@v4
         with:
           name: linux-build
-          path: dist/*.AppImage
+          path: daily-tracker/dist/*.AppImage
           if-no-files-found: error
 
   build-mac:
     runs-on: macos-latest
+    defaults:
+      run:
+        working-directory: ./daily-tracker
     steps:
       - uses: actions/checkout@v4
-      
+
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
           cache: 'npm'
-      
+          cache-dependency-path: daily-tracker/package-lock.json
+
       - name: Install dependencies
         run: npm ci
-      
+
       - name: Build macOS app
         run: npm run build:mac
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      
+
       - uses: actions/upload-artifact@v4
         with:
           name: mac-build
-          path: dist/*.dmg
+          path: daily-tracker/dist/*.dmg
           if-no-files-found: error
 
   release:

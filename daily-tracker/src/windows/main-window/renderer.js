@@ -100,6 +100,7 @@ function setupNav() {
     });
   });
 
+  $('btn-focus').addEventListener('click', () => tracker.openWindow('focus'));
   $('btn-reflection').addEventListener('click', () => tracker.openReflectionWindow());
   $('btn-log-activity').addEventListener('click', () => tracker.openPromptWindow());
 }
@@ -263,12 +264,16 @@ function makeTaskCard(task) {
       ? `<button class="tc-btn tc-pause">⏸ Pause</button><button class="tc-btn tc-complete">✓ Done</button>`
       : `<button class="tc-btn tc-undo">↩ Undo</button>`;
 
+  const estimate = task.pomodoro_estimate ?? 1;
+  const pomoBadge = `<span class="tc-pomos" title="Pomodoro estimate">🍅 ${estimate}</span>`;
+
   card.innerHTML = `
     <div class="tc-title">${escapeHtml(task.title)}</div>
     ${task.notes ? `<div class="tc-notes">${escapeHtml(task.notes)}</div>` : ''}
     <div class="tc-meta">
       ${catBadge}
       ${dueDateStr}
+      ${pomoBadge}
     </div>
     <div class="tc-actions">
       ${statusBtns}
@@ -338,6 +343,10 @@ function makeTaskEditCard(task) {
         ${catOptions}
       </select>
     </div>
+    <div class="form-row-inline" style="margin-bottom:8px;">
+      <label class="form-inline-label" style="margin-right:6px;">Pomos</label>
+      <input class="form-input form-input-pomos te-pomos" type="number" value="${task.pomodoro_estimate ?? 1}" min="1" max="10" />
+    </div>
     <div class="form-btns">
       <button class="btn btn-ghost btn-sm te-cancel">Cancel</button>
       <button class="btn btn-primary btn-sm te-save">Save</button>
@@ -352,11 +361,13 @@ function makeTaskEditCard(task) {
   card.querySelector('.te-save').addEventListener('click', async () => {
     const title = card.querySelector('.te-title').value.trim();
     if (!title) return;
+    const pomos = parseInt(card.querySelector('.te-pomos').value, 10);
     await tracker.updateTask(task.id, {
       title,
-      notes:    card.querySelector('.te-notes').value.trim() || null,
-      due_date: card.querySelector('.te-due').value || null,
-      category: card.querySelector('.te-category').value || null,
+      notes:             card.querySelector('.te-notes').value.trim() || null,
+      due_date:          card.querySelector('.te-due').value || null,
+      category:          card.querySelector('.te-category').value || null,
+      pomodoro_estimate: Number.isFinite(pomos) && pomos >= 1 ? pomos : 1,
     });
     editingTaskId = null;
     await loadTasksPanel();
@@ -410,17 +421,20 @@ function setupTaskForm() {
   $('btn-tf-save').addEventListener('click', async () => {
     const title = $('tf-title').value.trim();
     if (!title) return;
+    const pomos = parseInt($('tf-pomos').value, 10);
     await tracker.insertTask({
       title,
-      notes:    $('tf-notes').value.trim() || null,
-      due_date: $('tf-due').value || null,
-      category: $('tf-category').value || null,
-      status:   'pending',
+      notes:             $('tf-notes').value.trim() || null,
+      due_date:          $('tf-due').value || null,
+      category:          $('tf-category').value || null,
+      status:            'pending',
+      pomodoro_estimate: Number.isFinite(pomos) && pomos >= 1 ? pomos : 1,
     });
     $('tf-title').value    = '';
     $('tf-notes').value    = '';
     $('tf-due').value      = '';
     $('tf-category').value = '';
+    $('tf-pomos').value    = '1';
     $('task-form').classList.add('hidden');
     await loadTasksPanel();
   });
@@ -736,6 +750,7 @@ async function loadFinancePanel() {
   await Promise.all([
     loadFinanceSummary(),
     loadFinanceChart(),
+    loadNetBalanceGraph(),
     loadFinanceList(),
   ]);
 }
@@ -935,6 +950,247 @@ function setupFinanceForm() {
     $('finance-form').classList.add('hidden');
     await loadFinancePanel();
   });
+}
+
+// ── Net Balance Over Time graph ───────────────────────────────────────────────
+
+async function loadNetBalanceGraph() {
+  const rows = await tracker.getAllFinancesForGraph();
+
+  // Aggregate daily net per date
+  const dailyNet = {};
+  for (const row of rows) {
+    dailyNet[row.date] = (dailyNet[row.date] || 0) +
+      (row.type === 'income' ? row.total : -row.total);
+  }
+
+  // Build date range from earliest record to today
+  const txDates = Object.keys(dailyNet).sort();
+  if (txDates.length === 0) {
+    drawNetBalanceGraph([]);
+    return;
+  }
+
+  const allDates = [];
+  const cur = new Date(txDates[0] + 'T00:00:00');
+  const end = new Date(localDateStr(new Date()) + 'T00:00:00');
+  while (cur <= end) {
+    allDates.push(localDateStr(cur));
+    cur.setDate(cur.getDate() + 1);
+  }
+
+  let running = 0;
+  const points = allDates.map(date => {
+    running += dailyNet[date] || 0;
+    return { date, balance: running, hasTx: !!dailyNet[date] };
+  });
+
+  drawNetBalanceGraph(points);
+}
+
+function drawNetBalanceGraph(points) {
+  const canvas  = $('net-balance-canvas');
+  const tooltip = $('nb-tooltip');
+  if (!canvas) return;
+
+  const dpr  = window.devicePixelRatio || 1;
+  const cssW = canvas.offsetWidth;
+  const cssH = canvas.offsetHeight;
+
+  canvas.width  = Math.round(cssW * dpr);
+  canvas.height = Math.round(cssH * dpr);
+
+  const ctx = canvas.getContext('2d');
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, cssW, cssH);
+
+  const font = `11px 'Segoe UI', system-ui, sans-serif`;
+
+  if (points.length === 0) {
+    ctx.fillStyle = '#9ca3af';
+    ctx.font = `13px 'Segoe UI', system-ui, sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('No finance data yet — add a transaction to see your balance history.', cssW / 2, cssH / 2);
+    return;
+  }
+
+  const padL = 72, padR = 16, padT = 12, padB = 30;
+  const drawW = cssW - padL - padR;
+  const drawH = cssH - padT - padB;
+  const n = points.length;
+
+  const balances = points.map(p => p.balance);
+  const rawMin   = Math.min(...balances, 0);
+  const rawMax   = Math.max(...balances, 0);
+  const spread   = Math.max(rawMax - rawMin, 1);
+  const bMin     = rawMin - spread * 0.08;
+  const bMax     = rawMax + spread * 0.08;
+
+  const toX = i  => padL + (n < 2 ? drawW / 2 : i / (n - 1) * drawW);
+  const toY = b  => padT + (bMax - b) / (bMax - bMin) * drawH;
+  const zeroY    = toY(0);
+
+  // ── Fills ──
+  // Pre-compute pixel coordinates once so both fill and stroke share them.
+  const px = points.map((p, i) => ({ x: toX(i), y: toY(p.balance) }));
+
+  function tracePath() {
+    ctx.beginPath();
+    ctx.moveTo(px[0].x, px[0].y);
+    for (let i = 1; i < n; i++) {
+      const prev2 = px[Math.max(0, i - 2)];
+      const prev1 = px[i - 1];
+      const cur   = px[i];
+      const next  = px[Math.min(n - 1, i + 1)];
+      const cp1x  = prev1.x + (cur.x  - prev2.x) / 6;
+      const cp1y  = prev1.y + (cur.y  - prev2.y) / 6;
+      const cp2x  = cur.x  - (next.x  - prev1.x) / 6;
+      const cp2y  = cur.y  - (next.y  - prev1.y) / 6;
+      ctx.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, cur.x, cur.y);
+    }
+  }
+
+  const firstX = toX(0);
+  const lastX  = toX(n - 1);
+  const clipedZeroY = Math.max(padT, Math.min(padT + drawH, zeroY));
+
+  // Green above zero
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(padL, padT, drawW, clipedZeroY - padT);
+  ctx.clip();
+  tracePath();
+  ctx.lineTo(lastX, clipedZeroY);
+  ctx.lineTo(firstX, clipedZeroY);
+  ctx.closePath();
+  ctx.fillStyle = 'rgba(16,185,129,0.12)';
+  ctx.fill();
+  ctx.restore();
+
+  // Red below zero
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(padL, clipedZeroY, drawW, padT + drawH - clipedZeroY);
+  ctx.clip();
+  tracePath();
+  ctx.lineTo(lastX, clipedZeroY);
+  ctx.lineTo(firstX, clipedZeroY);
+  ctx.closePath();
+  ctx.fillStyle = 'rgba(239,68,68,0.12)';
+  ctx.fill();
+  ctx.restore();
+
+  // ── Y axis grid + labels ──
+  const yTickCount = 5;
+  ctx.font = font;
+  ctx.fillStyle = '#9ca3af';
+  ctx.textAlign = 'right';
+  ctx.textBaseline = 'middle';
+  for (let k = 0; k <= yTickCount; k++) {
+    const b = bMin + (bMax - bMin) * k / yTickCount;
+    const y = toY(b);
+    ctx.beginPath();
+    ctx.moveTo(padL, y);
+    ctx.lineTo(padL + drawW, y);
+    ctx.strokeStyle = 'rgba(0,0,0,0.05)';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([]);
+    ctx.stroke();
+    const label = (b >= 0 ? '' : '−') + '$' + Math.abs(b).toLocaleString(undefined, { maximumFractionDigits: 0 });
+    ctx.fillText(label, padL - 6, y);
+  }
+
+  // ── Zero line ──
+  if (zeroY >= padT && zeroY <= padT + drawH) {
+    ctx.beginPath();
+    ctx.moveTo(padL, zeroY);
+    ctx.lineTo(padL + drawW, zeroY);
+    ctx.strokeStyle = 'rgba(0,0,0,0.22)';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([5, 4]);
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  // ── X axis labels ──
+  const xTickCount = Math.min(7, n);
+  ctx.fillStyle = '#9ca3af';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'top';
+  for (let k = 0; k < xTickCount; k++) {
+    const i = Math.round(k / Math.max(xTickCount - 1, 1) * (n - 1));
+    ctx.fillText(points[i].date.slice(5), toX(i), padT + drawH + 6);
+  }
+
+  // ── Main line ──
+  tracePath();
+  ctx.strokeStyle = '#4F46E5';
+  ctx.lineWidth = 2;
+  ctx.lineJoin = 'round';
+  ctx.lineCap = 'round';
+  ctx.setLineDash([]);
+  ctx.stroke();
+
+  // ── Dots on transaction days ──
+  for (let i = 0; i < n; i++) {
+    if (!points[i].hasTx) continue;
+    const x = toX(i);
+    const y = toY(points[i].balance);
+    ctx.beginPath();
+    ctx.arc(x, y, 3.5, 0, Math.PI * 2);
+    ctx.fillStyle = points[i].balance >= 0 ? '#10b981' : '#ef4444';
+    ctx.fill();
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+  }
+
+  // ── Hover tooltip ──
+  canvas._nbPoints = points;
+  canvas._nbGeom   = { padL, drawW, padT, drawH, n, toX, toY };
+}
+
+// Attach tooltip handler once; re-uses data stored on canvas element
+(function attachNbTooltip() {
+  // defer until DOM is ready
+  document.addEventListener('DOMContentLoaded', () => {
+    const canvas  = $('net-balance-canvas');
+    const tooltip = $('nb-tooltip');
+    if (!canvas || !tooltip) return;
+    _setupNbTooltip(canvas, tooltip);
+  });
+
+  // also run immediately in case DOM is already ready
+  const canvas  = $('net-balance-canvas');
+  const tooltip = $('nb-tooltip');
+  if (canvas && tooltip) _setupNbTooltip(canvas, tooltip);
+}());
+
+function _setupNbTooltip(canvas, tooltip) {
+  canvas.addEventListener('mousemove', e => {
+    const pts  = canvas._nbPoints;
+    const geom = canvas._nbGeom;
+    if (!pts || !pts.length || !geom) { tooltip.hidden = true; return; }
+
+    const rect  = canvas.getBoundingClientRect();
+    const mouseX = e.clientX - rect.left;
+
+    const { padL, drawW, n } = geom;
+    const relX  = Math.max(0, Math.min(1, (mouseX - padL) / drawW));
+    const idx   = Math.round(relX * (n - 1));
+    const pt    = pts[idx];
+    if (!pt) { tooltip.hidden = false; return; }
+
+    const sign = pt.balance >= 0 ? '+' : '−';
+    const abs  = Math.abs(pt.balance).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    tooltip.textContent = `${pt.date}   ${sign}$${abs}`;
+    tooltip.hidden = false;
+    tooltip.style.left = `${e.clientX}px`;
+    tooltip.style.top  = `${e.clientY - 10}px`;
+  });
+
+  canvas.addEventListener('mouseleave', () => { tooltip.hidden = true; });
 }
 
 // ── SETTINGS section ──────────────────────────────────────────────────────────

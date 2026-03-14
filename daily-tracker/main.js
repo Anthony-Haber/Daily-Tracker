@@ -20,6 +20,7 @@ let mealWindow       = null;
 let reflectionWindow = null;
 let settingsWindow   = null;
 let setupWizardWindow = null;
+let focusWindow      = null;
 let tray             = null;
 
 // Resolved by the setup:complete IPC handler once the wizard finishes.
@@ -170,6 +171,20 @@ function createSetupWizardWindow() {
     }
     setupWizardWindow = null;
   });
+}
+
+function createFocusWindow() {
+  if (focusWindow && !focusWindow.isDestroyed()) {
+    focusWindow.show();
+    focusWindow.focus();
+    return;
+  }
+
+  focusWindow = new BrowserWindow(popupPrefs({ width: 480, height: 700, minHeight: 650, resizable: true }));
+  focusWindow.setMenuBarVisibility(false);
+  focusWindow.loadFile(path.join(__dirname, 'src', 'windows', 'focus-window', 'index.html'));
+  focusWindow.once('ready-to-show', () => { focusWindow.show(); focusWindow.focus(); });
+  focusWindow.on('closed', () => { focusWindow = null; });
 }
 
 function createSettingsWindow() {
@@ -325,11 +340,26 @@ ipcMain.handle('db:getFinances',              safeHandle((_e, opts)   => db.getF
 ipcMain.handle('db:getFinancesLast30Days',    safeHandle(()            => db.getFinancesLast30Days()));
 ipcMain.handle('db:getMonthlyFinanceSummary', safeHandle((_e, yr, mo) => db.getMonthlyFinanceSummary(yr, mo)));
 ipcMain.handle('db:deleteFinance',            safeHandle((_e, id)     => db.deleteFinance(id)));
+ipcMain.handle('db:getAllFinancesForGraph',   safeHandle(()            => db.getAllFinancesForGraph()));
 
 // db meta
 ipcMain.handle('db:getDbPath',      safeHandle(() => db.getDbPath()));
 ipcMain.handle('db:changeDbFolder', safeHandle(() => db.changeDbFolder()));
 ipcMain.handle('db:getActiveDates', safeHandle(() => db.getActiveDates()));
+
+// focus sessions
+ipcMain.handle('focus:save-session',  safeHandle((_e, data) => db.saveFocusSession(data)));
+ipcMain.handle('focus:get-sessions',  safeHandle((_e, date) => db.getFocusSessionsByDate(date)));
+ipcMain.handle('focus:get-summary',   safeHandle(()          => db.getFocusSummaryToday()));
+ipcMain.handle('focus:open-window',   safeHandle(()          => createFocusWindow()));
+
+// tasks (focus-window)
+ipcMain.handle('tasks:get-all',       safeHandle(()              => db.getTasks()));
+ipcMain.handle('tasks:update-status', safeHandle((_e, id, status) => {
+  const result = db.updateTask(id, { status });
+  if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('tasks:changed');
+  return result;
+}));
 
 // scheduler controls
 ipcMain.handle('scheduler:pause',    () => { scheduler.pause();    rebuildTrayMenu(); });
@@ -406,6 +436,7 @@ ipcMain.on('window:open', (_e, name) => {
     case 'meal':       createMealWindow();       break;
     case 'reflection': createReflectionWindow(); break;
     case 'settings':   createSettingsWindow();   break;
+    case 'focus':      createFocusWindow();      break;
   }
 });
 

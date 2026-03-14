@@ -46,6 +46,7 @@
 
     <div class="sidebar-bottom">
       <div id="sidebar-streak" class="sidebar-streak"></div>
+      <button id="btn-focus" class="btn-reflection">Focus Timer</button>
       <button id="btn-reflection" class="btn-reflection">Evening Reflection</button>
     </div>
   </aside>
@@ -136,10 +137,14 @@
         <textarea id="tf-notes" class="form-input form-textarea" placeholder="Notes (optional)…" rows="2" maxlength="1000"></textarea>
         <div class="form-row-2">
           <input type="date" id="tf-due" class="form-input" />
-          <div class="form-btns">
-            <button class="btn btn-ghost btn-sm" id="btn-tf-cancel">Cancel</button>
-            <button class="btn btn-primary btn-sm" id="btn-tf-save">Add Task</button>
+          <div class="form-row-inline">
+            <label class="form-inline-label" for="tf-pomos">Pomos</label>
+            <input type="number" id="tf-pomos" class="form-input form-input-pomos" value="1" min="1" max="10" />
           </div>
+        </div>
+        <div class="form-btns">
+          <button class="btn btn-ghost btn-sm" id="btn-tf-cancel">Cancel</button>
+          <button class="btn btn-primary btn-sm" id="btn-tf-save">Add Task</button>
         </div>
       </div>
 
@@ -278,6 +283,13 @@
       <!-- 30-day chart -->
       <div class="fin-chart-wrap">
         <canvas id="finance-chart"></canvas>
+      </div>
+
+      <!-- Net Balance Over Time graph -->
+      <h2 class="section-heading" style="margin-top:24px;flex-shrink:0;">Net Balance Over Time</h2>
+      <div class="fin-nb-wrap">
+        <canvas id="net-balance-canvas"></canvas>
+        <div id="nb-tooltip" class="nb-tooltip" hidden></div>
       </div>
 
       <!-- Transaction list -->

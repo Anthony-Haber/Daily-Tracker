@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline';" />
+  <title>Focus — Daily Tracker</title>
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    .task-card-handle {
+      color: var(--text-light);
+      cursor: grab;
+      font-size: 15px;
+      flex-shrink: 0;
+      user-select: none;
+      line-height: 1;
+      padding-right: 2px;
+    }
+    .task-card-handle:active { cursor: grabbing; }
+    .task-card.dragging      { opacity: 0.35; }
+    .task-card.drop-above    { border-top: 2px solid var(--accent); }
+    .task-card.drop-below    { border-bottom: 2px solid var(--accent); }
+  </style>
+</head>
+<body>
+
+  <div class="card">
+
+    <!-- ── Header ──────────────────────────────────────────────────────────── -->
+    <header class="card-header">
+      <h1 class="title">Focus</h1>
+      <button id="btn-close" class="btn-icon" title="Close">✕</button>
+    </header>
+
+    <!-- ── Mode tabs ────────────────────────────────────────────────────────── -->
+    <div class="tab-bar">
+      <button class="tab active" data-mode="pomodoro"     data-minutes="25">Pomodoro</button>
+      <button class="tab"        data-mode="short-break"  data-minutes="5">Short Break</button>
+      <button class="tab"        data-mode="long-break"   data-minutes="15">Long Break</button>
+    </div>
+
+    <!-- ── Timer ────────────────────────────────────────────────────────────── -->
+    <section class="timer-section">
+      <div class="timer-display" id="timer-display">25:00</div>
+      <div class="session-counter">
+        <span id="session-count">0</span> pomodoro<span id="session-plural">s</span> today
+      </div>
+      <div id="task-active-label" class="task-active-label" hidden></div>
+    </section>
+
+    <!-- ── Controls ─────────────────────────────────────────────────────────── -->
+    <div class="controls">
+      <button id="btn-skip"   class="btn btn-ghost btn-sm">Skip</button>
+      <button id="btn-start"  class="btn btn-primary">Start</button>
+    </div>
+
+    <!-- ── Task area ─────────────────────────────────────────────────────────── -->
+    <section class="task-section">
+      <div class="section-heading task-section-label">In Progress</div>
+      <ul class="inprogress-list" id="inprogress-list">
+        <li class="task-empty" id="inprogress-empty">No tasks in progress</li>
+      </ul>
+      <div class="add-task-row">
+        <button id="btn-add-task" class="btn btn-ghost btn-sm">+ Add Task</button>
+        <div class="pending-dropdown" id="pending-dropdown" hidden>
+          <ul class="pending-list" id="pending-list"></ul>
+          <div class="pending-empty" id="pending-empty" hidden>No pending tasks</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── Session log ───────────────────────────────────────────────────────── -->
+    <section class="log-section">
+      <div class="section-heading">Today's Sessions</div>
+      <ul class="session-log" id="session-log">
+        <li class="log-empty" id="log-empty">No sessions yet — start your first pomodoro!</li>
+      </ul>
+    </section>
+
+  </div>
+
+  <script src="renderer.js"></script>
+</body>
+</html>

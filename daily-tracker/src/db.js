@@ -79,7 +79,9 @@ async function init() {
     db.pragma('foreign_keys = ON');
 
     createTables();
+    createFocusSessionsTable();
     try { db.exec('ALTER TABLE tasks ADD COLUMN category TEXT'); } catch (_) {}
+    try { db.exec('ALTER TABLE tasks ADD COLUMN pomodoro_estimate INTEGER DEFAULT 1'); } catch (_) {}
     try { db.exec('ALTER TABLE reflections ADD COLUMN journal_entry TEXT'); } catch (_) {}
     try { db.exec('ALTER TABLE hourly_logs ADD COLUMN task_id INTEGER REFERENCES tasks(id)'); } catch (_) {}
   } catch (err) {
@@ -225,12 +227,12 @@ function deleteLog(id) {
 
 // ── tasks CRUD ────────────────────────────────────────────────────────────────
 
-function insertTask({ title, notes = null, status = 'pending', due_date = null, category = null }) {
+function insertTask({ title, notes = null, status = 'pending', due_date = null, category = null, pomodoro_estimate = 1 }) {
   return safeDB(() => {
     const info = db.prepare(`
-      INSERT INTO tasks (created_at, title, notes, status, due_date, category)
-      VALUES (?, ?, ?, ?, ?, ?)
-    `).run(now(), title, notes, status, due_date, category);
+      INSERT INTO tasks (created_at, title, notes, status, due_date, category, pomodoro_estimate)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `).run(now(), title, notes, status, due_date, category, pomodoro_estimate ?? 1);
     return { id: Number(info.lastInsertRowid) };
   }, null);
 }
@@ -254,17 +256,18 @@ function getTaskById(id) {
   null);
 }
 
-function updateTask(id, { title, notes, status, due_date, category }) {
+function updateTask(id, { title, notes, status, due_date, category, pomodoro_estimate }) {
   return safeDB(() =>
     db.prepare(`
       UPDATE tasks
-      SET title    = COALESCE(?, title),
-          notes    = COALESCE(?, notes),
-          status   = COALESCE(?, status),
-          due_date = COALESCE(?, due_date),
-          category = COALESCE(?, category)
+      SET title             = COALESCE(?, title),
+          notes             = COALESCE(?, notes),
+          status            = COALESCE(?, status),
+          due_date          = COALESCE(?, due_date),
+          category          = COALESCE(?, category),
+          pomodoro_estimate = COALESCE(?, pomodoro_estimate)
       WHERE id = ?
-    `).run(title ?? null, notes ?? null, status ?? null, due_date ?? null, category ?? null, id),
+    `).run(title ?? null, notes ?? null, status ?? null, due_date ?? null, category ?? null, pomodoro_estimate ?? null, id),
   );
 }
 
@@ -411,6 +414,69 @@ function deleteFinance(id) {
   );
 }
 
+/**
+ * Returns every finance row grouped by date+type, ordered oldest-first.
+ * Used to build the all-time cumulative net-balance graph.
+ */
+function getAllFinancesForGraph() {
+  return safeDB(() =>
+    db.prepare(`
+      SELECT date, type, SUM(amount) AS total
+      FROM finances
+      GROUP BY date, type
+      ORDER BY date ASC
+    `).all(),
+  []);
+}
+
+// ── focus_sessions ────────────────────────────────────────────────────────────
+
+function createFocusSessionsTable() {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS focus_sessions (
+      id               INTEGER PRIMARY KEY AUTOINCREMENT,
+      date             TEXT NOT NULL,
+      task_label       TEXT,
+      mode             TEXT NOT NULL,  -- pomodoro | short_break | long_break
+      duration_minutes INTEGER NOT NULL,
+      completed        INTEGER NOT NULL DEFAULT 0,  -- 0 | 1
+      created_at       TEXT NOT NULL
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_focus_sessions_date ON focus_sessions(date);
+  `);
+}
+
+function saveFocusSession({ date, task_label = null, mode, duration_minutes, completed = 0 }) {
+  return safeDB(() => {
+    const info = db.prepare(`
+      INSERT INTO focus_sessions (date, task_label, mode, duration_minutes, completed, created_at)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `).run(date, task_label, mode, duration_minutes, completed ? 1 : 0, now());
+    return { id: Number(info.lastInsertRowid) };
+  }, null);
+}
+
+function getFocusSessionsByDate(date) {
+  return safeDB(() =>
+    db.prepare(`
+      SELECT * FROM focus_sessions
+      WHERE date = ?
+      ORDER BY created_at ASC
+    `).all(date),
+  []);
+}
+
+function getFocusSummaryToday() {
+  return safeDB(() =>
+    db.prepare(`
+      SELECT COUNT(*) AS completed_pomodoros
+      FROM focus_sessions
+      WHERE date = date('now') AND mode = 'pomodoro' AND completed = 1
+    `).get(),
+  { completed_pomodoros: 0 });
+}
+
 // ── Cross-table queries ───────────────────────────────────────────────────────
 
 function getActiveDates() {
@@ -469,6 +535,12 @@ module.exports = {
   getFinancesLast30Days,
   getMonthlyFinanceSummary,
   deleteFinance,
+  getAllFinancesForGraph,
+
+  // focus_sessions
+  saveFocusSession,
+  getFocusSessionsByDate,
+  getFocusSummaryToday,
 
   // cross-table
   getActiveDates,

@@ -23,6 +23,7 @@ contextBridge.exposeInMainWorld('api', {
   getFinancesLast30Days:    ()           => ipcRenderer.invoke('db:getFinancesLast30Days'),
   getMonthlyFinanceSummary: (year, month)=> ipcRenderer.invoke('db:getMonthlyFinanceSummary', year, month),
   deleteFinance:            (id)         => ipcRenderer.invoke('db:deleteFinance',            id),
+  getAllFinancesForGraph:    ()           => ipcRenderer.invoke('db:getAllFinancesForGraph'),
 
   // DB meta
   getDbPath:      ()         => ipcRenderer.invoke('db:getDbPath'),
@@ -94,6 +95,7 @@ contextBridge.exposeInMainWorld('tracker', {
   getFinancesLast30Days:    ()            => ipcRenderer.invoke('db:getFinancesLast30Days'),
   getMonthlyFinanceSummary: (year, month) => ipcRenderer.invoke('db:getMonthlyFinanceSummary', year, month),
   deleteFinance:            (id)          => ipcRenderer.invoke('db:deleteFinance',            id),
+  getAllFinancesForGraph:    ()            => ipcRenderer.invoke('db:getAllFinancesForGraph'),
 
   // ── db meta ─────────────────────────────────────────────────────────────────
   getDbPath:      () => ipcRenderer.invoke('db:getDbPath'),
@@ -134,4 +136,18 @@ contextBridge.exposeInMainWorld('tracker', {
   openPromptWindow:     () => ipcRenderer.send('window:openPrompt'),
   openReflectionWindow: () => ipcRenderer.send('window:openReflection'),
   openSettingsWindow:   () => ipcRenderer.send('window:openSettings'),
+
+  // ── focus sessions ──────────────────────────────────────────────────────────
+  focus: {
+    saveSession:  (data) => ipcRenderer.invoke('focus:save-session', data),
+    getSessions:  (date) => ipcRenderer.invoke('focus:get-sessions', date),
+    getSummary:   ()     => ipcRenderer.invoke('focus:get-summary'),
+  },
+
+  // ── tasks (namespaced) ───────────────────────────────────────────────────────
+  // Status values: 'pending' | 'in_progress' | 'done'
+  tasks: {
+    getAll:       ()             => ipcRenderer.invoke('db:getTasks'),
+    updateStatus: (taskId, status) => ipcRenderer.invoke('db:updateTask', taskId, { status }),
+  },
 });

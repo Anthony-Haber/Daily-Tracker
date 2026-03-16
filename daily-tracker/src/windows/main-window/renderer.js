@@ -705,7 +705,7 @@ async function loadHistoryDay(date) {
     html += `<div class="detail-section">
       <div class="detail-section-title">Evening Reflection</div>
       <div class="reflection-card">
-        ${reflection.mood ? `<div class="rc-mood">${MOOD_EMOJI[reflection.mood] || ''} Mood ${reflection.mood}/5</div>` : ''}
+        ${reflection.mood ? `<div class="rc-mood">${MOOD_EMOJI[reflection.mood] || ''} Mood ${reflection.mood}/10</div>` : ''}
         ${reflection.highlights ? `<div class="rc-field"><span class="rc-label">Highlights</span><p>${escapeHtml(reflection.highlights)}</p></div>` : ''}
         ${reflection.challenges ? `<div class="rc-field"><span class="rc-label">Challenges</span><p>${escapeHtml(reflection.challenges)}</p></div>` : ''}
         ${reflection.gratitude ? `<div class="rc-field"><span class="rc-label">Gratitude</span><p>${escapeHtml(reflection.gratitude)}</p></div>` : ''}

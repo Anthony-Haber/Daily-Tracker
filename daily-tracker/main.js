@@ -500,3 +500,50 @@ app.on('before-quit', () => {
 
 // macOS: clicking the dock icon re-opens the dashboard.
 app.on('activate', () => createMainWindow());
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+//banadoura easter egg

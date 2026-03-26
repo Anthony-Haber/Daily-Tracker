@@ -51,6 +51,7 @@ async function init() {
   $('toggle-reminders').checked       = s.remindersEnabled;
   $('sel-start-hour').value           = s.reminderStartHour;
   $('sel-end-hour').value             = s.reminderEndHour;
+  $('sel-checkin-interval').value     = s.checkinInterval || 60;
   $('toggle-startup').checked         = s.launchOnStartup;
 
   // ── Close / Done ─────────────────────────────────────────────────────────
@@ -83,6 +84,12 @@ async function init() {
 
   $('sel-end-hour').addEventListener('change', async (e) => {
     await tracker.setSetting('reminderEndHour', parseInt(e.target.value, 10));
+    showStatus();
+  });
+
+  // ── Check-in interval ────────────────────────────────────────────────────
+  $('sel-checkin-interval').addEventListener('change', async (e) => {
+    await tracker.setSetting('checkinInterval', parseInt(e.target.value, 10));
     showStatus();
   });
 

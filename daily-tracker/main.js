@@ -3,10 +3,14 @@
 const { app, BrowserWindow, ipcMain, Tray, Menu, nativeImage, dialog } = require('electron');
 const path      = require('path');
 const os        = require('os');
+const fs        = require('fs');
 const db        = require('./src/db');
 const scheduler = require('./src/scheduler');
 const settings  = require('./src/settings');
+const Store     = require('electron-store');
 const { autoUpdater } = require('electron-updater');
+
+const musicStore = new Store({ name: 'daily-tracker-config' });
 
 // ── Windows: required for Action Center notifications ─────────────────────────
 // Must be set before app is ready.
@@ -21,6 +25,7 @@ let reflectionWindow = null;
 let settingsWindow   = null;
 let setupWizardWindow = null;
 let focusWindow      = null;
+let financeWindow    = null;
 let tray             = null;
 
 // Resolved by the setup:complete IPC handler once the wizard finishes.
@@ -104,7 +109,7 @@ function createPromptWindow() {
     return;
   }
 
-  promptWindow = new BrowserWindow(popupPrefs({ width: 500, height: 490 }));
+  promptWindow = new BrowserWindow(popupPrefs({ width: 460, height: 560, minWidth: 420, minHeight: 520, resizable: true }));
   promptWindow.setMenuBarVisibility(false);
   promptWindow.loadFile(path.join(__dirname, 'src', 'windows', 'prompt-window', 'index.html'));
   promptWindow.once('ready-to-show', () => { promptWindow.show(); promptWindow.focus(); });
@@ -118,7 +123,7 @@ function createMealWindow() {
     return;
   }
 
-  mealWindow = new BrowserWindow(popupPrefs({ width: 460, height: 380 }));
+  mealWindow = new BrowserWindow(popupPrefs({ width: 460, height: 550, minWidth: 400, minHeight: 500, resizable: true }));
   mealWindow.setMenuBarVisibility(false);
   mealWindow.loadFile(path.join(__dirname, 'src', 'windows', 'meal-window', 'index.html'));
   mealWindow.once('ready-to-show', () => { mealWindow.show(); mealWindow.focus(); });
@@ -180,11 +185,46 @@ function createFocusWindow() {
     return;
   }
 
-  focusWindow = new BrowserWindow(popupPrefs({ width: 480, height: 700, minHeight: 650, resizable: true }));
+  focusWindow = new BrowserWindow({
+    width: 480, height: 700, minHeight: 650, resizable: true,
+    show:        false,
+    alwaysOnTop: false,
+    skipTaskbar: false,
+    webPreferences: {
+      preload:          path.join(__dirname, 'preload.js'),
+      contextIsolation: true,
+      nodeIntegration:  false,
+    },
+  });
   focusWindow.setMenuBarVisibility(false);
   focusWindow.loadFile(path.join(__dirname, 'src', 'windows', 'focus-window', 'index.html'));
   focusWindow.once('ready-to-show', () => { focusWindow.show(); focusWindow.focus(); });
   focusWindow.on('closed', () => { focusWindow = null; });
+}
+
+function createFinanceWindow() {
+  if (financeWindow && !financeWindow.isDestroyed()) {
+    financeWindow.show();
+    financeWindow.focus();
+    return;
+  }
+
+  financeWindow = new BrowserWindow({
+    width: 460, height: 560,
+    resizable:   true,
+    show:        false,
+    alwaysOnTop: false,
+    skipTaskbar: false,
+    webPreferences: {
+      preload:          path.join(__dirname, 'preload.js'),
+      contextIsolation: true,
+      nodeIntegration:  false,
+    },
+  });
+  financeWindow.setMenuBarVisibility(false);
+  financeWindow.loadFile(path.join(__dirname, 'src', 'windows', 'finance-window', 'index.html'));
+  financeWindow.once('ready-to-show', () => { financeWindow.show(); financeWindow.focus(); });
+  financeWindow.on('closed', () => { financeWindow = null; });
 }
 
 function createSettingsWindow() {
@@ -227,6 +267,10 @@ function rebuildTrayMenu() {
     {
       label: 'Log Meal',
       click: () => createMealWindow(),
+    },
+    {
+      label: '💰 Log Finances',
+      click: () => createFinanceWindow(),
     },
     {
       label:   'Evening Reflection',
@@ -347,11 +391,49 @@ ipcMain.handle('db:getDbPath',      safeHandle(() => db.getDbPath()));
 ipcMain.handle('db:changeDbFolder', safeHandle(() => db.changeDbFolder()));
 ipcMain.handle('db:getActiveDates', safeHandle(() => db.getActiveDates()));
 
+// finance window
+ipcMain.handle('finance:save-entry',  safeHandle((_e, data) => db.insertFinance(data)));
+ipcMain.handle('finance:open-window', safeHandle(()          => createFinanceWindow()));
+
 // focus sessions
 ipcMain.handle('focus:save-session',  safeHandle((_e, data) => db.saveFocusSession(data)));
 ipcMain.handle('focus:get-sessions',  safeHandle((_e, date) => db.getFocusSessionsByDate(date)));
 ipcMain.handle('focus:get-summary',   safeHandle(()          => db.getFocusSummaryToday()));
 ipcMain.handle('focus:open-window',   safeHandle(()          => createFocusWindow()));
+
+// music (focus-window)
+function getFocusMusicDir() {
+  return path.join(app.getPath('userData'), 'focus-music');
+}
+
+ipcMain.handle('music:save-track', safeHandle((_e, filePath, displayName, pool) => {
+  const dir = getFocusMusicDir();
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  const filename = `${Date.now()}_${path.basename(filePath)}`;
+  const dest = path.join(dir, filename);
+  fs.copyFileSync(filePath, dest);
+  const resolvedPool = pool === 'break' ? 'break' : 'focus';
+  const resolvedName = displayName || path.basename(filePath);
+  const playlist = musicStore.get('focusMusic.playlist', []);
+  playlist.push({ filename, displayName: resolvedName, pool: resolvedPool });
+  musicStore.set('focusMusic.playlist', playlist);
+  return { filename, displayName: resolvedName, pool: resolvedPool, filePath: dest };
+}));
+
+ipcMain.handle('music:get-tracks', safeHandle(() => {
+  const playlist = musicStore.get('focusMusic.playlist', []);
+  const dir = getFocusMusicDir();
+  return playlist.map(t => ({ ...t, filePath: path.join(dir, t.filename) }));
+}));
+
+ipcMain.handle('music:delete-track', safeHandle((_e, filename) => {
+  const playlist = musicStore.get('focusMusic.playlist', []);
+  const updated = playlist.filter(t => t.filename !== filename);
+  musicStore.set('focusMusic.playlist', updated);
+  const filePath = path.join(getFocusMusicDir(), filename);
+  try { fs.unlinkSync(filePath); } catch (_) { /* already gone */ }
+  return true;
+}));
 
 // tasks (focus-window)
 ipcMain.handle('tasks:get-all',       safeHandle(()              => db.getTasks()));
@@ -376,6 +458,9 @@ ipcMain.handle('settings:set', (_e, key, value) => {
     if (value) scheduler.resume();
     else scheduler.pause();
     rebuildTrayMenu();
+  }
+  if (key === 'checkinInterval') {
+    scheduler.restart();
   }
 });
 
@@ -437,6 +522,7 @@ ipcMain.on('window:open', (_e, name) => {
     case 'reflection': createReflectionWindow(); break;
     case 'settings':   createSettingsWindow();   break;
     case 'focus':      createFocusWindow();      break;
+    case 'finance':    createFinanceWindow();    break;
   }
 });
 

@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline';" />
+  <title>Log Finance — Daily Tracker</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+  <h1 class="page-title">Log Finance Entry</h1>
+
+  <!-- ── Type toggle ─────────────────────────────────────────────────────── -->
+  <div class="field-group">
+    <span class="field-label">Type</span>
+    <div class="type-row">
+      <button class="type-btn active" data-type="expense">Expense</button>
+      <button class="type-btn"        data-type="income">Income</button>
+    </div>
+  </div>
+
+  <!-- ── Amount ──────────────────────────────────────────────────────────── -->
+  <div class="field-group">
+    <label class="field-label" for="amount">Amount</label>
+    <div class="amount-wrap">
+      <span class="currency-symbol">$</span>
+      <input id="amount" class="input amount-input" type="number" min="0" step="0.01"
+             placeholder="0.00" />
+    </div>
+  </div>
+
+  <!-- ── Category ────────────────────────────────────────────────────────── -->
+  <div class="field-group">
+    <label class="field-label" for="category">Category</label>
+    <select id="category" class="input select-input">
+      <option value="Food">Food</option>
+      <option value="Transport">Transport</option>
+      <option value="Entertainment">Entertainment</option>
+      <option value="Shopping">Shopping</option>
+      <option value="Salary">Salary</option>
+      <option value="Other">Other</option>
+    </select>
+  </div>
+
+  <!-- ── Notes ───────────────────────────────────────────────────────────── -->
+  <div class="field-group">
+    <label class="field-label" for="notes">Notes <span class="optional">(optional)</span></label>
+    <input id="notes" class="input" type="text" placeholder="e.g. Grocery run, Netflix sub…" maxlength="200" />
+  </div>
+
+  <!-- ── Date ────────────────────────────────────────────────────────────── -->
+  <div class="field-group">
+    <label class="field-label" for="date">Date</label>
+    <input id="date" class="input" type="date" />
+  </div>
+
+  <!-- ── Actions ─────────────────────────────────────────────────────────── -->
+  <footer class="actions">
+    <button id="btn-cancel" class="btn btn-ghost">Cancel</button>
+    <button id="btn-save"   class="btn btn-primary" disabled>Save Entry</button>
+  </footer>
+
+  <script src="renderer.js"></script>
+</body>
+</html>

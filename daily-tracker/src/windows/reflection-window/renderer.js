@@ -111,3 +111,21 @@ btnSave.addEventListener('click', async () => {
 
 btnSkip.addEventListener('click',  () => tracker.closeReflection());
 btnClose.addEventListener('click', () => tracker.closeReflection());
+
+// ── Reminder cards ────────────────────────────────────────────────────────────
+
+document.getElementById('btn-food-logged').addEventListener('click', () => {
+  document.getElementById('food-reminder').classList.add('reminder-done');
+});
+
+document.getElementById('btn-food-log-now').addEventListener('click', () => {
+  tracker.openWindow('meal');
+});
+
+document.getElementById('btn-finance-logged').addEventListener('click', () => {
+  document.getElementById('finance-reminder').classList.add('reminder-done');
+});
+
+document.getElementById('btn-finance-remind').addEventListener('click', () => {
+  tracker.finance.openWindow();
+});

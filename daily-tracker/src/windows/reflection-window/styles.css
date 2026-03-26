@@ -191,6 +191,28 @@ html, body {
 }
 .btn-ghost:hover:not(:disabled) { background: var(--bg); color: var(--text-2); }
 
+.btn-sm { padding: 6px 14px; font-size: 12px; }
+
+/* ── Reminder cards ──────────────────────────────────────────────────────────── */
+.reminder-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 14px 16px;
+  gap: 10px;
+}
+
+.reminder-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.reminder-done {
+  opacity: .5;
+  pointer-events: none;
+}
+
 /* ── Success state ───────────────────────────────────────────────────────────── */
 .success-state {
   flex: 1;

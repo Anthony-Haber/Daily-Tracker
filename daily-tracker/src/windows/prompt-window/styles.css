@@ -29,14 +29,15 @@
 /* ── Base ────────────────────────────────────────────────────────────────────── */
 html, body {
   height: 100%;
-  background: var(--bg);
+  background: var(--surface);
   color: var(--text);
   font-family: var(--font);
   font-size: 14px;
   line-height: 1.5;
   display: flex;
-  align-items: center;
-  justify-content: center;
+  flex-direction: column;
+  padding: 22px 24px 18px;
+  gap: 16px;
   -webkit-font-smoothing: antialiased;
 }
 
@@ -63,19 +64,6 @@ html, body {
 .toast.visible {
   opacity: 1;
   transform: translateX(-50%) translateY(0);
-}
-
-/* ── Card ────────────────────────────────────────────────────────────────────── */
-.card {
-  width: 460px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  box-shadow: var(--shadow);
-  padding: 22px 24px 18px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
 }
 
 /* ── Header ──────────────────────────────────────────────────────────────────── */

@@ -26,6 +26,7 @@ const DEFAULTS = {
   remindersEnabled:  true,
   reminderStartHour: 8,
   reminderEndHour:   21,
+  checkinInterval:   60,
 };
 
 // ── Settings access ───────────────────────────────────────────────────────────
@@ -40,6 +41,7 @@ function getSettings() {
     remindersEnabled:  store.get('remindersEnabled',  DEFAULTS.remindersEnabled),
     reminderStartHour: store.get('reminderStartHour', DEFAULTS.reminderStartHour),
     reminderEndHour:   store.get('reminderEndHour',   DEFAULTS.reminderEndHour),
+    checkinInterval:   store.get('checkinInterval',   DEFAULTS.checkinInterval),
     launchOnStartup:   getAutoLaunch(),
     dbFolder:          store.get('dbFolder', null),
   };

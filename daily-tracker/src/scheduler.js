@@ -40,12 +40,13 @@ let _callbacks          = { onPrompt: null, onReflection: null };
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-/** Milliseconds until the start of the next clock hour. */
-function msUntilNextHour() {
-  const now  = new Date();
-  const next = new Date(now);
-  next.setHours(now.getHours() + 1, 0, 0, 0);
-  return next - now;
+/** Milliseconds until the next interval boundary (e.g. next :30 or :00). */
+function msUntilNextInterval(intervalMinutes) {
+  const now       = new Date();
+  const nowMs     = (now.getMinutes() * 60 + now.getSeconds()) * 1000 + now.getMilliseconds();
+  const intervalMs = intervalMinutes * 60 * 1000;
+  const remainder  = nowMs % intervalMs;
+  return remainder === 0 ? intervalMs : intervalMs - remainder;
 }
 
 /** YYYY-MM-DD for today in local time. */
@@ -142,13 +143,19 @@ function tick() {
 function start({ onPrompt, onReflection }) {
   _callbacks = { onPrompt, onReflection };
 
-  const delay = msUntilNextHour();
+  const intervalMinutes = settings.getSettings().checkinInterval || 60;
+  const delay = msUntilNextInterval(intervalMinutes);
 
-  // Fire once at the next hour boundary, then repeat every 60 minutes.
   hourTimer = setTimeout(() => {
     tick();
-    hourTimer = setInterval(tick, 60 * 60 * 1000);
+    hourTimer = setInterval(tick, intervalMinutes * 60 * 1000);
   }, delay);
+}
+
+/** Restart the scheduler with updated interval settings. */
+function restart() {
+  stop();
+  start(_callbacks);
 }
 
 /** Temporarily pause notifications without stopping the underlying timer. */
@@ -175,4 +182,4 @@ function stop() {
   }
 }
 
-module.exports = { start, stop, pause, resume, isPaused };
+module.exports = { start, stop, pause, resume, isPaused, restart };

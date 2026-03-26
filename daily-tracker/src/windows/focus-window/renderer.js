@@ -41,6 +41,12 @@ let inProgressOrder = [];
 /** ID of the card currently being dragged. */
 let dragSrcId = null;
 
+/**
+ * Session-local pomodoro count per task: { [taskId]: { completed, original } }
+ * original = pomodoro_estimate at the moment of first decrement.
+ */
+let taskPomodoros = {};
+
 // ── DOM refs ───────────────────────────────────────────────────────────────────
 
 const $ = id => document.getElementById(id);
@@ -91,8 +97,25 @@ function pomodoroCount() {
   return sessions.filter(s => s.mode === 'pomodoro' && s.completed).length;
 }
 
-function pomodoroLabel(estimate) {
-  return `🍅 ×${estimate || 1}`;
+function pomodoroLabel(task) {
+  const entry = taskPomodoros[task.id];
+  if (!entry) return `🍅 0/${task.pomodoro_estimate || 1}`;
+  return `🍅 ${entry.completed}/${entry.original}`;
+}
+
+function estimatedFinishTime(task) {
+  const entry    = taskPomodoros[task.id];
+  const original = entry ? entry.original : (task.pomodoro_estimate || 1);
+  const completed = entry ? entry.completed : 0;
+  const remaining = Math.max(0, original - completed);
+  if (remaining === 0) return null;
+  const ms   = remaining * 25 * 60 * 1000;
+  const then = new Date(Date.now() + ms);
+  let h = then.getHours();
+  const m    = then.getMinutes();
+  const ampm = h < 12 ? 'AM' : 'PM';
+  h = h % 12 || 12;
+  return `Est. finish ~${h}:${String(m).padStart(2, '0')} ${ampm}`;
 }
 
 // ── localStorage helpers ───────────────────────────────────────────────────────
@@ -255,8 +278,10 @@ function renderInProgressList() {
     name.textContent = task.title;
 
     const pomo       = document.createElement('span');
-    pomo.className   = 'task-card-pomo';
-    pomo.textContent = pomodoroLabel(task.pomodoro_estimate);
+    const entry      = taskPomodoros[task.id];
+    const isDone     = entry && entry.completed >= entry.original;
+    pomo.className   = 'task-card-pomo' + (isDone ? ' pomo-done' : '');
+    pomo.textContent = pomodoroLabel(task);
 
     const done       = document.createElement('button');
     done.className   = 'btn btn-success btn-sm task-card-done';
@@ -265,6 +290,14 @@ function renderInProgressList() {
     done.draggable   = false;
 
     li.append(handle, name, pomo, done);
+
+    const finishStr = estimatedFinishTime(task);
+    if (finishStr && task.id === inProgressOrder[0]) {
+      const finish       = document.createElement('div');
+      finish.className   = 'task-card-finish';
+      finish.textContent = finishStr;
+      li.appendChild(finish);
+    }
 
     li.addEventListener('dragstart', onDragStart);
     li.addEventListener('dragover',  onDragOver);
@@ -404,6 +437,31 @@ async function loadTasksFromDB() {
   renderInProgressList();
 }
 
+// ── Pomodoro estimate tracking ────────────────────────────────────────────────
+
+async function decrementTopTaskEstimate() {
+  const topId   = inProgressOrder[0];
+  const topTask = topId != null ? allTasks.find(t => t.id === topId) : null;
+  if (!topTask) return;
+
+  // Init tracking entry if first pomodoro for this task
+  if (!taskPomodoros[topId]) {
+    taskPomodoros[topId] = { completed: 0, original: topTask.pomodoro_estimate || 1 };
+  }
+  taskPomodoros[topId].completed += 1;
+
+  // Decrement estimate in DB (floor at 0)
+  const newEstimate = Math.max(0, topTask.pomodoro_estimate - 1);
+  topTask.pomodoro_estimate = newEstimate;
+  try {
+    await tracker.updateTask(topId, { pomodoro_estimate: newEstimate });
+  } catch (err) {
+    console.error('[focus] updateTask estimate failed:', err);
+  }
+
+  renderInProgressList();
+}
+
 // ── DB helpers ─────────────────────────────────────────────────────────────────
 
 async function loadSessionsFromDB() {
@@ -452,6 +510,7 @@ async function startTimer() {
   isRunning = true;
   btnStart.textContent = 'Pause';
   timerId = setInterval(tick, 1000);
+  musicPlayForCurrentMode();
 }
 
 function pauseTimer() {
@@ -460,12 +519,15 @@ function pauseTimer() {
   btnStart.textContent = 'Resume';
   clearInterval(timerId);
   timerId = null;
+  musicStop();
 }
 
 async function skipTimer() {
   clearInterval(timerId);
   timerId   = null;
   isRunning = false;
+
+  musicClear();
 
   let nextMode;
   if (currentMode === 'pomodoro') {
@@ -492,6 +554,11 @@ async function completeSession() {
   remainingSeconds = 0;
   renderDisplay();
 
+  if (currentMode === 'pomodoro') {
+    await decrementTopTaskEstimate();
+    musicClear();
+  }
+
   playCompletionSound();
   await persistSession();
 
@@ -511,6 +578,7 @@ function switchMode(mode) {
   btnStart.textContent = 'Start';
   renderModeUI();
   renderDisplay();
+  musicClear();
 }
 
 // ── Event listeners ────────────────────────────────────────────────────────────
@@ -526,7 +594,7 @@ tabs.forEach(tab => {
   tab.addEventListener('click', () => switchMode(tab.dataset.mode));
 });
 
-$('btn-close').addEventListener('click', () => tracker.closeWindow());
+$('btn-close')?.addEventListener('click', () => tracker.closeWindow());
 
 // In-progress list "✓ Done" — event delegation
 elInprogressList.addEventListener('click', async e => {
@@ -591,3 +659,247 @@ renderModeUI();
 renderDisplay();
 loadSessionsFromDB();
 loadTasksFromDB();
+
+// ── Music player ───────────────────────────────────────────────────────────────
+
+const musicAudio        = $('music-audio');
+const musicPlayPause    = $('music-play-pause');
+const musicSkip         = $('music-skip');
+const musicVolume       = $('music-volume');
+const musicPlaylist     = $('music-playlist');
+const musicBody         = $('music-body');
+const musicToggleBtn    = $('music-toggle');
+const musicToggleArrow  = $('music-toggle-arrow');
+const musicNowPlaying   = $('music-now-playing');
+const musicTrackName    = $('music-track-name');
+const musicUploadBtn    = $('music-upload');
+const musicFileInput    = $('music-file-input');
+
+let musicTracks            = [];        // { filename, displayName, filePath, pool }
+let musicCurrentIdx        = -1;        // index into musicTracks of current track (-1 = none)
+let musicIsPlaying         = false;
+let musicActivePool        = null;      // 'focus' | 'break' | null
+let musicLastFocusFilename = null;      // last played focus track (for repeat avoidance)
+let musicLastBreakFilename = null;      // last played break track
+let musicUploadPool        = 'focus';   // pool assigned to next upload batch
+
+// ── Music helpers ──────────────────────────────────────────────────────────────
+
+function musicPoolTracks(pool) {
+  return musicTracks.filter(t => (t.pool || 'focus') === pool);
+}
+
+function musicPickRandom(pool) {
+  const tracks = musicPoolTracks(pool);
+  if (tracks.length === 0) return null;
+  if (tracks.length === 1) return tracks[0];
+  const lastName = pool === 'focus' ? musicLastFocusFilename : musicLastBreakFilename;
+  const candidates = tracks.filter(t => t.filename !== lastName);
+  return candidates[Math.floor(Math.random() * candidates.length)];
+}
+
+function musicUpdateControls() {
+  const hasTracks = musicTracks.length > 0;
+  musicPlayPause.disabled = !hasTracks;
+  musicSkip.disabled      = !hasTracks;
+  musicPlayPause.textContent = musicIsPlaying ? '⏸ Pause' : '▶ Play';
+}
+
+function musicRenderPlaylist() {
+  musicPlaylist.innerHTML = '';
+  musicTracks.forEach((t, i) => {
+    const li = document.createElement('li');
+    li.className = 'music-track-item' + (i === musicCurrentIdx && musicIsPlaying ? ' playing' : '');
+
+    const pool = t.pool || 'focus';
+    const badge       = document.createElement('span');
+    badge.className   = `music-pool-badge music-pool-badge--${pool}`;
+    badge.textContent = pool === 'break' ? 'B' : 'F';
+
+    const name = document.createElement('span');
+    name.className   = 'music-track-item-name';
+    name.textContent = t.displayName;
+    name.addEventListener('click', () => musicPlaySpecific(i));
+
+    const del = document.createElement('button');
+    del.className   = 'music-track-item-del';
+    del.textContent = '✕';
+    del.title = 'Remove track';
+    del.addEventListener('click', async () => {
+      await tracker.music.deleteTrack(t.filename);
+      if (musicCurrentIdx === i) {
+        musicAudio.pause();
+        musicAudio.src = '';
+        musicIsPlaying = false;
+        musicActivePool = null;
+        musicCurrentIdx = -1;
+        musicNowPlaying.hidden = true;
+      } else if (musicCurrentIdx > i) {
+        musicCurrentIdx--;
+      }
+      musicTracks.splice(i, 1);
+      musicRenderPlaylist();
+      musicUpdateControls();
+    });
+
+    li.append(badge, name, del);
+    musicPlaylist.appendChild(li);
+  });
+}
+
+// ── Core playback ─────────────────────────────────────────────────────────────
+
+function musicStop() {
+  musicAudio.pause();
+  musicIsPlaying = false;
+  musicUpdateControls();
+  musicRenderPlaylist();
+}
+
+function musicClear() {
+  musicAudio.pause();
+  musicAudio.src   = '';
+  musicIsPlaying   = false;
+  musicActivePool  = null;
+  musicCurrentIdx  = -1;
+  musicNowPlaying.hidden = true;
+  musicUpdateControls();
+  musicRenderPlaylist();
+}
+
+function musicPlayFromPool(pool) {
+  const poolTracks = musicPoolTracks(pool);
+  if (poolTracks.length === 0) return;
+
+  // Resume if the same pool is already loaded and just paused
+  if (musicActivePool === pool && musicCurrentIdx >= 0 && musicAudio.paused && musicAudio.src) {
+    musicAudio.volume = parseFloat(musicVolume.value);
+    musicAudio.play().catch(() => {});
+    musicIsPlaying = true;
+    musicUpdateControls();
+    musicRenderPlaylist();
+    return;
+  }
+
+  const track = musicPickRandom(pool);
+  if (!track) return;
+
+  if (pool === 'focus') musicLastFocusFilename = track.filename;
+  else                  musicLastBreakFilename = track.filename;
+
+  musicActivePool = pool;
+  musicCurrentIdx = musicTracks.indexOf(track);
+
+  musicAudio.src    = `file://${track.filePath}`;
+  musicAudio.volume = parseFloat(musicVolume.value);
+  musicAudio.play().catch(() => {});
+  musicIsPlaying = true;
+  musicTrackName.textContent = track.displayName;
+  musicNowPlaying.hidden     = false;
+  musicRenderPlaylist();
+  musicUpdateControls();
+}
+
+function musicPlayForCurrentMode() {
+  musicPlayFromPool(currentMode === 'pomodoro' ? 'focus' : 'break');
+}
+
+function musicPlaySpecific(idx) {
+  const track = musicTracks[idx];
+  if (!track) return;
+  const pool = track.pool || 'focus';
+  musicActivePool = pool;
+  musicCurrentIdx = idx;
+  if (pool === 'focus') musicLastFocusFilename = track.filename;
+  else                  musicLastBreakFilename = track.filename;
+  musicAudio.src    = `file://${track.filePath}`;
+  musicAudio.volume = parseFloat(musicVolume.value);
+  musicAudio.play().catch(() => {});
+  musicIsPlaying = true;
+  musicTrackName.textContent = track.displayName;
+  musicNowPlaying.hidden     = false;
+  musicRenderPlaylist();
+  musicUpdateControls();
+}
+
+function musicSkipInPool() {
+  const pool       = musicActivePool || (currentMode === 'pomodoro' ? 'focus' : 'break');
+  const poolTracks = musicPoolTracks(pool);
+  if (poolTracks.length === 0) return;
+
+  const lastName   = pool === 'focus' ? musicLastFocusFilename : musicLastBreakFilename;
+  const candidates = poolTracks.length > 1 ? poolTracks.filter(t => t.filename !== lastName) : poolTracks;
+  const track      = candidates[Math.floor(Math.random() * candidates.length)];
+
+  if (pool === 'focus') musicLastFocusFilename = track.filename;
+  else                  musicLastBreakFilename = track.filename;
+
+  musicActivePool = pool;
+  musicCurrentIdx = musicTracks.indexOf(track);
+  musicAudio.src    = `file://${track.filePath}`;
+  musicAudio.volume = parseFloat(musicVolume.value);
+  musicAudio.play().catch(() => {});
+  musicIsPlaying = true;
+  musicTrackName.textContent = track.displayName;
+  musicNowPlaying.hidden     = false;
+  musicRenderPlaylist();
+  musicUpdateControls();
+}
+
+// ── Event listeners ────────────────────────────────────────────────────────────
+
+musicAudio.addEventListener('ended', () => {
+  if (musicActivePool) musicPlayFromPool(musicActivePool);
+});
+
+musicPlayPause.addEventListener('click', () => {
+  if (musicIsPlaying) musicStop();
+  else musicPlayForCurrentMode();
+});
+
+musicSkip.addEventListener('click', () => musicSkipInPool());
+
+musicVolume.addEventListener('input', () => {
+  musicAudio.volume = parseFloat(musicVolume.value);
+});
+
+musicToggleBtn.addEventListener('click', () => {
+  const open = musicBody.hidden;
+  musicBody.hidden = !open;
+  musicToggleArrow.classList.toggle('open', open);
+});
+
+// Pool selector for upload
+document.querySelectorAll('.music-pool-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.music-pool-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    musicUploadPool = btn.dataset.pool;
+  });
+});
+
+musicUploadBtn.addEventListener('click', () => musicFileInput.click());
+
+musicFileInput.addEventListener('change', async () => {
+  const files = Array.from(musicFileInput.files);
+  for (const file of files) {
+    const saved = await tracker.music.saveTrack(
+      file.path,
+      file.name.replace(/\.[^.]+$/, ''),
+      musicUploadPool,
+    );
+    if (saved) musicTracks.push(saved);
+  }
+  musicFileInput.value = '';
+  musicRenderPlaylist();
+  musicUpdateControls();
+});
+
+// Load existing tracks on init (no auto-play)
+(async () => {
+  try {
+    musicTracks = await tracker.music.getTracks() || [];
+  } catch { musicTracks = []; }
+  musicRenderPlaylist();
+  musicUpdateControls();
+})();

@@ -150,4 +150,17 @@ contextBridge.exposeInMainWorld('tracker', {
     getAll:       ()             => ipcRenderer.invoke('db:getTasks'),
     updateStatus: (taskId, status) => ipcRenderer.invoke('db:updateTask', taskId, { status }),
   },
+
+  // ── finance window ───────────────────────────────────────────────────────────
+  finance: {
+    saveEntry:  (data) => ipcRenderer.invoke('finance:save-entry',  data),
+    openWindow: ()     => ipcRenderer.invoke('finance:open-window'),
+  },
+
+  // ── music (focus-window) ─────────────────────────────────────────────────────
+  music: {
+    saveTrack:   (filePath, displayName, pool) => ipcRenderer.invoke('music:save-track', filePath, displayName, pool),
+    getTracks:   ()                      => ipcRenderer.invoke('music:get-tracks'),
+    deleteTrack: (filename)              => ipcRenderer.invoke('music:delete-track', filename),
+  },
 });

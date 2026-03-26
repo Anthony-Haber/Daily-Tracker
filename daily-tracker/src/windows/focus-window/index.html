@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta http-equiv="Content-Security-Policy"
-        content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline';" />
+        content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; media-src 'self' file:;" />
   <title>Focus — Daily Tracker</title>
   <link rel="stylesheet" href="styles.css" />
   <style>
@@ -24,14 +24,6 @@
   </style>
 </head>
 <body>
-
-  <div class="card">
-
-    <!-- ── Header ──────────────────────────────────────────────────────────── -->
-    <header class="card-header">
-      <h1 class="title">Focus</h1>
-      <button id="btn-close" class="btn-icon" title="Close">✕</button>
-    </header>
 
     <!-- ── Mode tabs ────────────────────────────────────────────────────────── -->
     <div class="tab-bar">
@@ -78,7 +70,37 @@
       </ul>
     </section>
 
-  </div>
+    <!-- ── Music player ──────────────────────────────────────────────────────── -->
+    <section class="music-section" id="music-section">
+      <button class="music-toggle" id="music-toggle">
+        <span>🎵 Music</span>
+        <span class="music-toggle-arrow" id="music-toggle-arrow">▶</span>
+      </button>
+      <div class="music-body" id="music-body" hidden>
+        <div class="music-now-playing" id="music-now-playing" hidden>
+          <span class="music-note">♪</span>
+          <span id="music-track-name" class="music-track-name">—</span>
+        </div>
+        <div class="music-controls">
+          <button id="music-play-pause" class="btn btn-ghost btn-sm" disabled>▶ Play</button>
+          <button id="music-skip"       class="btn btn-ghost btn-sm" disabled>⏭ Skip</button>
+          <label class="music-volume-label">
+            <span>🔊</span>
+            <input type="range" id="music-volume" min="0" max="1" step="0.05" value="0.7" class="music-volume-slider" />
+          </label>
+        </div>
+        <ul class="music-playlist" id="music-playlist"></ul>
+        <div class="music-upload-row">
+          <div class="music-pool-select">
+            <button class="music-pool-btn active" data-pool="focus">Focus</button>
+            <button class="music-pool-btn"        data-pool="break">Break</button>
+          </div>
+          <button id="music-upload" class="btn btn-ghost btn-sm">+ Upload tracks</button>
+          <input type="file" id="music-file-input" accept="audio/*" multiple style="display:none" />
+        </div>
+      </div>
+      <audio id="music-audio"></audio>
+    </section>
 
   <script src="renderer.js"></script>
 </body>

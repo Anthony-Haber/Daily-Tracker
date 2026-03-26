@@ -1216,10 +1216,11 @@ async function loadSettingsPanel() {
     tracker.getDbPath(),
   ]);
 
-  $('sp-toggle-reminders').checked = s.remindersEnabled;
-  $('sp-sel-start').value          = s.reminderStartHour;
-  $('sp-sel-end').value            = s.reminderEndHour;
-  $('sp-toggle-startup').checked   = s.launchOnStartup;
+  $('sp-toggle-reminders').checked       = s.remindersEnabled;
+  $('sp-sel-start').value                = s.reminderStartHour;
+  $('sp-sel-end').value                  = s.reminderEndHour;
+  $('sp-sel-checkin-interval').value     = s.checkinInterval || 60;
+  $('sp-toggle-startup').checked         = s.launchOnStartup;
   $('sp-db-path').textContent      = dbPath || 'Not configured';
 }
 
@@ -1249,6 +1250,11 @@ async function setupSettingsPanel() {
 
   $('sp-sel-end').addEventListener('change', async (e) => {
     await tracker.setSetting('reminderEndHour', parseInt(e.target.value, 10));
+  });
+
+  // Check-in interval
+  $('sp-sel-checkin-interval').addEventListener('change', async (e) => {
+    await tracker.setSetting('checkinInterval', parseInt(e.target.value, 10));
   });
 
   // Startup toggle

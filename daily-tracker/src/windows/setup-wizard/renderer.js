@@ -1,4 +1,4 @@
-/* global tracker */
+/* global tracker, applyTheme, triggerShipLog */
 'use strict';
 
 const $ = id => document.getElementById(id);
@@ -46,5 +46,10 @@ function showStep(id) {
   document.querySelectorAll('.step').forEach(el => el.classList.remove('active'));
   $(id).classList.add('active');
 }
+
+window.tracker.theme.getActive().then(name => {
+  applyTheme(name);
+  window.tracker.theme.onChange(applyTheme);
+});
 
 init();

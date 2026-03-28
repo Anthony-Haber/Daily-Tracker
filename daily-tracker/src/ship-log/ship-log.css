@@ -1,0 +1,43 @@
+/* ── Ship Log overlay ────────────────────────────────────────────────────────── */
+.ship-log-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  opacity: 1;
+  overflow: visible;
+  transition: opacity 500ms ease;
+
+  /* Subtle scanline texture — pure CSS, no images */
+  background:
+    repeating-linear-gradient(
+      to bottom,
+      transparent 0px,
+      transparent 3px,
+      rgba(0, 0, 0, 0.04) 3px,
+      rgba(0, 0, 0, 0.04) 4px
+    );
+}
+
+.ship-log-overlay.fading-out {
+  opacity: 0;
+}
+
+.ship-log-text {
+  font-family: var(--theme-font-display, 'Segoe UI', system-ui, sans-serif);
+  font-size: 2rem;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--theme-accent-primary, #4f63d2);
+  text-shadow:
+    0 0 12px var(--theme-accent-primary, #4f63d2),
+    0 0 4px  var(--theme-accent-primary, #4f63d2);
+  white-space: nowrap;
+  min-width: 100vw;
+  padding: 0 24px;
+  text-align: center;
+}

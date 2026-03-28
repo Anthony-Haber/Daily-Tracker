@@ -1,4 +1,16 @@
-/* global tracker */
+/* global tracker, applyTheme, triggerShipLog, playSound */
+
+if (window.tracker?.sound?.play) {
+  console.log('[sound-renderer] sound API available');
+} else {
+  console.warn('[sound-renderer] sound API NOT available - check preload.js');
+}
+
+// ── Theme ──────────────────────────────────────────────────────────────────────
+window.tracker.theme.getActive().then(name => {
+  applyTheme(name);
+  window.tracker.theme.onChange(applyTheme);
+});
 
 const headerTitle      = document.getElementById('header-title');
 const moodSlider       = document.getElementById('mood-slider');
@@ -103,14 +115,16 @@ btnSave.addEventListener('click', async () => {
 
   await tracker.upsertReflection(getFormData());
 
+  try { console.log('[sound-renderer] trigger fired: reflection'); playSound('reflection'); } catch (_) {}
+  triggerShipLog();
   formContent.classList.add('hidden');
   successState.classList.remove('hidden');
 });
 
 // ── Close / skip ──────────────────────────────────────────────────────────────
 
-btnSkip.addEventListener('click',  () => tracker.closeReflection());
-btnClose.addEventListener('click', () => tracker.closeReflection());
+btnSkip.addEventListener('click',  async () => { try { await playSoundAndWait('close'); } catch (_) {} tracker.closeReflection(); });
+btnClose.addEventListener('click', async () => { try { await playSoundAndWait('close'); } catch (_) {} tracker.closeReflection(); });
 
 // ── Reminder cards ────────────────────────────────────────────────────────────
 

@@ -4,9 +4,14 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta http-equiv="Content-Security-Policy"
-        content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:;" />
+        content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; media-src 'self' file: blob:; font-src 'self' file:;" />
   <title>Daily Tracker</title>
+  <link id="theme-stylesheet" rel="stylesheet" href="../../themes/default/theme.css" />
+  <link rel="stylesheet" href="../../ship-log/ship-log.css" />
   <link rel="stylesheet" href="styles.css" />
+  <script src="../../theme-loader.js"></script>
+  <script src="../../ship-log/ship-log.js"></script>
+  <script src="../../sounds/sound-player.js"></script>
 </head>
 <body>
 
@@ -37,6 +42,10 @@
       <button class="nav-item" data-panel="finance">
         <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z"/><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clip-rule="evenodd"/></svg>
         Finance
+      </button>
+      <button class="nav-item" data-panel="themes">
+        <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 2a2 2 0 00-2 2v11a3 3 0 106 0V4a2 2 0 00-2-2H4zm1 14a1 1 0 100-2 1 1 0 000 2zm5-1.757l4.9-4.9a2 2 0 000-2.828L13.485 5.1a2 2 0 00-2.828 0L10 5.757v8.486zM16 18H9.071l6-6H16a2 2 0 012 2v2a2 2 0 01-2 2z" clip-rule="evenodd"/></svg>
+        Themes
       </button>
       <button class="nav-item" data-panel="settings">
         <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd"/></svg>
@@ -297,6 +306,45 @@
       <div id="finance-list"></div>
     </section>
 
+    <!-- THEMES panel -->
+    <section class="panel hidden" id="panel-themes">
+      <div class="panel-header">
+        <div class="panel-title">Themes</div>
+      </div>
+
+      <div class="theme-grid" id="theme-grid">
+        <button class="theme-card" data-theme="default" id="theme-card-default">
+          <div class="theme-swatch theme-swatch-default">
+            <div class="swatch-bg"></div>
+            <div class="swatch-accent"></div>
+          </div>
+          <span class="theme-card-label">Default</span>
+        </button>
+        <button class="theme-card" data-theme="outer-wilds" id="theme-card-outer-wilds">
+          <div class="theme-swatch theme-swatch-outer-wilds">
+            <div class="swatch-bg"></div>
+            <div class="swatch-accent"></div>
+          </div>
+          <span class="theme-card-label">Outer Wilds 🌌</span>
+        </button>
+        <button class="theme-card" data-theme="user-custom" id="theme-card-user-custom">
+          <div class="theme-swatch">
+            <div class="swatch-bg"     id="swatch-custom-bg"     style="background:#f0f2f5; flex:2"></div>
+            <div class="swatch-accent" id="swatch-custom-accent" style="background:#4f63d2; flex:1"></div>
+          </div>
+          <span class="theme-card-label">Custom ✏️</span>
+        </button>
+        <button class="theme-card theme-card-placeholder" disabled>
+          <div class="theme-swatch theme-swatch-placeholder">
+            <div class="swatch-bg"></div>
+            <div class="swatch-accent"></div>
+          </div>
+          <span class="theme-card-label">More coming soon…</span>
+        </button>
+      </div>
+      <p class="section-note" style="margin-top:12px;">Theme affects colors, fonts, and music preset across all windows.</p>
+    </section>
+
     <!-- SETTINGS panel -->
     <section class="panel hidden" id="panel-settings">
       <div class="panel-header">
@@ -362,6 +410,8 @@
             </label>
           </div>
         </div>
+
+        <!-- APPEARANCE -->
 
         <!-- DATABASE -->
         <div class="sp-section">

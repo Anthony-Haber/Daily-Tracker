@@ -3,19 +3,19 @@
 button { font-family: inherit; cursor: pointer; }
 input, textarea, select { font-family: inherit; }
 
-/* ── Design tokens ───────────────────────────────────────────────────────────── */
+/* ── Design tokens (mapped to theme variables) ───────────────────────────────── */
 :root {
-  --bg:          #F8F9FC;
-  --surface:     #FFFFFF;
-  --surface-2:   #F1F2F6;
-  --border:      #E5E7EB;
-  --border-2:    #D1D5DB;
-  --accent:      #4F46E5;
-  --accent-2:    #4338CA;
+  --bg:          var(--theme-bg-primary);
+  --surface:     var(--theme-bg-secondary);
+  --surface-2:   var(--theme-bg-tertiary);
+  --border:      var(--theme-border-color);
+  --border-2:    var(--theme-border-color);
+  --accent:      var(--theme-accent-primary);
+  --accent-2:    var(--theme-accent-secondary);
   --accent-light:#EEF2FF;
-  --text:        #111827;
-  --text-2:      #374151;
-  --text-muted:  #6B7280;
+  --text:        var(--theme-text-primary);
+  --text-2:      var(--theme-text-primary);
+  --text-muted:  var(--theme-text-secondary);
   --text-light:  #9CA3AF;
   --success:     #10B981;
   --success-light:#D1FAE5;
@@ -25,11 +25,11 @@ input, textarea, select { font-family: inherit; }
   --danger-light:#FEE2E2;
   --pink:        #EC4899;
   --pink-light:  #FCE7F3;
-  --radius:      8px;
+  --radius:      var(--theme-radius);
   --radius-lg:   12px;
   --shadow-sm:   0 1px 3px rgba(0,0,0,.08);
-  --shadow:      0 4px 16px rgba(0,0,0,.09);
-  --font:        'Segoe UI', system-ui, -apple-system, sans-serif;
+  --shadow:      var(--theme-shadow);
+  --font:        var(--theme-font-body);
 }
 
 /* ── Base ────────────────────────────────────────────────────────────────────── */
@@ -1519,3 +1519,64 @@ body {
   border-color: var(--accent);
   box-shadow: 0 0 0 3px rgba(79,70,229,.12);
 }
+
+/* ── Theme panel ─────────────────────────────────────────────────────────────── */
+.theme-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  max-width: 480px;
+}
+
+.theme-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  cursor: pointer;
+  transition: border-color .15s;
+}
+
+.theme-card:hover:not(:disabled) {
+  border-color: var(--accent);
+}
+
+.theme-card.active {
+  border-color: var(--accent);
+  background: var(--accent-light);
+}
+
+.theme-card-placeholder {
+  opacity: .45;
+  cursor: not-allowed;
+}
+
+.theme-card-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.theme-swatch {
+  width: 100%;
+  height: 36px;
+  border-radius: 4px;
+  overflow: hidden;
+  display: flex;
+}
+
+.theme-swatch .swatch-bg     { flex: 2; height: 100%; }
+.theme-swatch .swatch-accent { flex: 1; height: 100%; }
+
+.theme-swatch-default .swatch-bg     { background: #f0f2f5; }
+.theme-swatch-default .swatch-accent { background: #4f63d2; }
+
+.theme-swatch-outer-wilds .swatch-bg     { background: #ff7d25; }
+.theme-swatch-outer-wilds .swatch-accent { background: #10B981; }
+
+.theme-swatch-placeholder .swatch-bg     { background: var(--bg); }
+.theme-swatch-placeholder .swatch-accent { background: var(--border); }
+

@@ -41,8 +41,10 @@ contextBridge.exposeInMainWorld('api', {
   setupComplete:         (folder) => ipcRenderer.invoke('setup:complete', folder),
 
   // App controls
-  closeWindow: ()     => ipcRenderer.send('window:close'),
-  openWindow:  (name) => ipcRenderer.send('window:open', name),
+  closeWindow:      ()    => ipcRenderer.send('window:close'),
+  closeConfirmed:   ()    => ipcRenderer.send('window:close-confirmed'),
+  onCloseWithSound: (cb)  => ipcRenderer.on('window:close-with-sound', cb),
+  openWindow:       (name) => ipcRenderer.send('window:open', name),
 
   // App info
   appGetVersion: () => ipcRenderer.invoke('app:getVersion'),
@@ -127,6 +129,8 @@ contextBridge.exposeInMainWorld('tracker', {
 
   // ── window control ──────────────────────────────────────────────────────────
   closeWindow:          () => ipcRenderer.send('window:close'),
+  closeConfirmed:       () => ipcRenderer.send('window:close-confirmed'),
+  onCloseWithSound:     (cb) => ipcRenderer.on('window:close-with-sound', cb),
   openWindow:           (name) => ipcRenderer.send('window:open', name),
   closePrompt:          () => ipcRenderer.send('window:closePrompt'),
   closeMeal:            () => ipcRenderer.send('window:closeMeal'),
@@ -157,10 +161,40 @@ contextBridge.exposeInMainWorld('tracker', {
     openWindow: ()     => ipcRenderer.invoke('finance:open-window'),
   },
 
+  // ── theme ────────────────────────────────────────────────────────────────────
+  theme: {
+    getActive:          ()              => ipcRenderer.invoke('theme:get-active'),
+    setActive:          (themeName)     => ipcRenderer.invoke('theme:set-active', themeName),
+    onChange:           (callback)      => ipcRenderer.on('theme:changed', (_e, name) => callback(name)),
+    saveCustom:         (variables)     => ipcRenderer.invoke('theme:save-custom', variables),
+    restartWithTheme:   (themeName)     => ipcRenderer.invoke('theme:restart-with-theme', themeName),
+  },
+
+  // ── sounds ───────────────────────────────────────────────────────────────────
+  // tracker.sound.play(soundType) returns Promise<string|null> (absolute file path).
+  // sound-player.js wraps this to also trigger HTML5 Audio playback automatically.
+  sound: {
+    play:          (soundType)             => ipcRenderer.invoke('sound:play', soundType),
+    playForTheme:  (themeName, soundType)  => ipcRenderer.invoke('sound:play-for-theme', themeName, soundType),
+    // Used by sound-player.js to receive file-path pushes from the main process
+    // (e.g. startup sound fired after app.whenReady).
+    onPlayFile:    (cb) => ipcRenderer.on('sound:play-file', (_e, fp) => cb(fp)),
+    // Per-theme UI sounds toggle — mirrors the uiSoundsEnabled key in electron-store.
+    getUiEnabled:  (themeName) => ipcRenderer.invoke('sound:get-ui-enabled', themeName),
+    setUiEnabled:  (themeName, enabled) => ipcRenderer.invoke('sound:set-ui-enabled', themeName, enabled),
+  },
+
   // ── music (focus-window) ─────────────────────────────────────────────────────
   music: {
-    saveTrack:   (filePath, displayName, pool) => ipcRenderer.invoke('music:save-track', filePath, displayName, pool),
-    getTracks:   ()                      => ipcRenderer.invoke('music:get-tracks'),
-    deleteTrack: (filename)              => ipcRenderer.invoke('music:delete-track', filename),
+    saveTrack:            (themeName, pool, filePath, name) => ipcRenderer.invoke('music:save-track', themeName, pool, filePath, name),
+    getTracks:            (themeName, pool)                 => ipcRenderer.invoke('music:get-tracks', themeName, pool),
+    deleteTrack:          (themeName, pool, filename)       => ipcRenderer.invoke('music:delete-track', themeName, pool, filename),
+    getActiveThemeTracks: (pool)                            => ipcRenderer.invoke('music:get-active-theme-tracks', pool),
+    getPreBreakTrack:     (themeName)                       => ipcRenderer.invoke('music:get-pre-break-track', themeName),
+  },
+
+  // ── app meta ─────────────────────────────────────────────────────────────────
+  app: {
+    isDev: () => ipcRenderer.invoke('app:is-dev'),
   },
 });

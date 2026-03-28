@@ -1,0 +1,196 @@
+/* ── ITC Serif Gothic font ────────────────────────────────────────────────────
+   Drop ITCSerifGothic.woff2 / .ttf into src/themes/outer-wilds/fonts/
+   The app falls back to Palatino Linotype until the file is present.
+────────────────────────────────────────────────────────────────────────────── */
+@font-face {
+  font-family: 'ITC Serif Gothic';
+  src: url('fonts/itc-serif-gothic-light-588cee8a0bfb1.otf') format('opentype');
+  font-weight: 300;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'ITC Serif Gothic';
+  src: url('fonts/itc-serif-gothic-regular-588cef4e7134b.otf') format('opentype');
+  font-weight: 400;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'ITC Serif Gothic';
+  src: url('fonts/itc-serif-gothic-extra-bold-588cef7e1f5d9.otf') format('opentype');
+  font-weight: 800;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'ITC Serif Gothic';
+  src: url('fonts/itc-serif-gothic-heavy-588d443a778f2.otf') format('opentype');
+  font-weight: 900;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'ITC Serif Gothic';
+  src: url('fonts/itc-serif-gothic-black-588d43e1e915d.otf') format('opentype');
+  font-weight: 950;
+  font-style: normal;
+}
+
+/* ── Outer Wilds theme — light mode ───────────────────────────────────────────
+   Daytime Timber Hearth palette.
+────────────────────────────────────────────────────────────────────────────── */
+:root {
+  --theme-bg-primary:          #0b1e26;
+  --theme-bg-secondary:        #0f2d3d;
+  --theme-bg-tertiary:         #174e7d;
+  --theme-accent-primary:      #ff7d25;
+  --theme-accent-secondary:    #676e4c;
+  --theme-text-primary:        #ff7d25;
+  --theme-text-secondary:      #ff7d25;
+  --theme-text-on-accent:      #0b1e26;
+  --theme-border-color:        #1e3d52;
+  --theme-timer-color:         #ff7d25;
+  --theme-button-primary-bg:   #ff7d25;
+  --theme-button-primary-text: #0b1e26;
+  --theme-button-secondary-bg: #174e7d;
+  --theme-button-secondary-text: #ff7d25;
+  --theme-sidebar-bg:          #071318;
+  --theme-sidebar-text:        #ff7d25;
+  --theme-sidebar-active-bg:   #174e7d;
+  --theme-sidebar-active-text: #ff7d25;
+  --theme-card-bg:             #0f2d3d;
+  --theme-input-bg:            #0b1e26;
+  --theme-input-text:          #ff7d25;
+  --theme-input-border:        #174e7d;
+  --theme-font-display:        'ITC Serif Gothic', 'Palatino Linotype', Georgia, serif;
+  --theme-font-body:           'ITC Serif Gothic', 'Palatino Linotype', Georgia, serif;
+  --theme-shadow:              0 4px 24px rgba(255, 125, 37, 0.12);
+  --theme-radius:              2px;
+}
+
+
+/* ── Headings & display text ──────────────────────────────────────────────────
+   Window-level styles can override where needed.
+────────────────────────────────────────────────────────────────────────────── */
+h1, h2, h3, h4, h5, h6,
+.nav-title,
+.section-heading,
+.stat-label,
+.timer-display,
+.window-title {
+  font-family: var(--theme-font-display);
+  color: #ff7d25;
+}
+
+body {
+  font-family: var(--theme-font-body);
+  color: var(--theme-text-primary);
+  background-color: var(--theme-bg-primary);
+}
+
+
+/* ── Atmosphere ───────────────────────────────────────────────────────────────
+   Star field: multiple small radial-gradient dots at varied positions.
+   Vignette: radial overlay — dark at edges, transparent center.
+────────────────────────────────────────────────────────────────────────────── */
+body {
+  background-image:
+    /* Vignette */
+    radial-gradient(ellipse at center,
+      transparent 40%,
+      rgba(0, 0, 0, 0.65) 100%
+    ),
+    /* Star field — 40 dots spread across the viewport */
+    radial-gradient(1px 1px at  7%  13%, rgba(255,255,240,.7) 0%, transparent 100%),
+    radial-gradient(1px 1px at 19%  87%, rgba(255,255,240,.5) 0%, transparent 100%),
+    radial-gradient(1px 1px at 34%   4%, rgba(255,255,240,.6) 0%, transparent 100%),
+    radial-gradient(1px 1px at 52%  61%, rgba(255,255,240,.4) 0%, transparent 100%),
+    radial-gradient(1px 1px at 68%  29%, rgba(255,255,240,.7) 0%, transparent 100%),
+    radial-gradient(1px 1px at 81%  75%, rgba(255,255,240,.5) 0%, transparent 100%),
+    radial-gradient(1px 1px at 93%  43%, rgba(255,255,240,.6) 0%, transparent 100%),
+    radial-gradient(1px 1px at  3%  55%, rgba(255,255,240,.4) 0%, transparent 100%),
+    radial-gradient(1px 1px at 25%  32%, rgba(255,255,240,.6) 0%, transparent 100%),
+    radial-gradient(1px 1px at 45%  91%, rgba(255,255,240,.5) 0%, transparent 100%),
+    radial-gradient(1px 1px at 60%   8%, rgba(255,255,240,.7) 0%, transparent 100%),
+    radial-gradient(1px 1px at 76%  52%, rgba(255,255,240,.4) 0%, transparent 100%),
+    radial-gradient(1px 1px at 88%  17%, rgba(255,255,240,.6) 0%, transparent 100%),
+    radial-gradient(1px 1px at 12%  70%, rgba(255,255,240,.5) 0%, transparent 100%),
+    radial-gradient(1px 1px at 39%  48%, rgba(255,255,240,.3) 0%, transparent 100%),
+    radial-gradient(1px 1px at 57%  83%, rgba(255,255,240,.6) 0%, transparent 100%),
+    radial-gradient(1px 1px at 72%   3%, rgba(255,255,240,.5) 0%, transparent 100%),
+    radial-gradient(1px 1px at 85%  66%, rgba(255,255,240,.4) 0%, transparent 100%),
+    radial-gradient(1px 1px at 97%  22%, rgba(255,255,240,.7) 0%, transparent 100%),
+    radial-gradient(1px 1px at 15%  95%, rgba(255,255,240,.5) 0%, transparent 100%),
+    radial-gradient(1px 1px at 30%  15%, rgba(255,255,240,.4) 0%, transparent 100%),
+    radial-gradient(1px 1px at 48%  38%, rgba(255,255,240,.6) 0%, transparent 100%),
+    radial-gradient(1px 1px at 64%  72%, rgba(255,255,240,.5) 0%, transparent 100%),
+    radial-gradient(1px 1px at 79%  40%, rgba(255,255,240,.3) 0%, transparent 100%),
+    radial-gradient(1px 1px at 91%  88%, rgba(255,255,240,.6) 0%, transparent 100%),
+    radial-gradient(1px 1px at  5%  25%, rgba(255,255,240,.4) 0%, transparent 100%),
+    radial-gradient(1px 1px at 22%  58%, rgba(255,255,240,.7) 0%, transparent 100%),
+    radial-gradient(1px 1px at 43%  77%, rgba(255,255,240,.5) 0%, transparent 100%),
+    radial-gradient(1px 1px at 56%  20%, rgba(255,255,240,.6) 0%, transparent 100%),
+    radial-gradient(1px 1px at 70%  93%, rgba(255,255,240,.4) 0%, transparent 100%),
+    radial-gradient(1px 1px at 83%   5%, rgba(255,255,240,.5) 0%, transparent 100%),
+    radial-gradient(1px 1px at 95%  47%, rgba(255,255,240,.7) 0%, transparent 100%),
+    radial-gradient(1px 1px at 10%  82%, rgba(255,255,240,.4) 0%, transparent 100%),
+    radial-gradient(1px 1px at 27%  42%, rgba(255,255,240,.6) 0%, transparent 100%),
+    radial-gradient(1px 1px at 50%   2%, rgba(255,255,240,.5) 0%, transparent 100%),
+    radial-gradient(1px 1px at 67%  65%, rgba(255,255,240,.3) 0%, transparent 100%),
+    radial-gradient(1px 1px at 82%  30%, rgba(255,255,240,.6) 0%, transparent 100%),
+    radial-gradient(1px 1px at 99%  78%, rgba(255,255,240,.5) 0%, transparent 100%),
+    radial-gradient(2px 2px at 35%  55%, rgba(255,180, 60,.6) 0%, transparent 100%),
+    radial-gradient(2px 2px at 73%  12%, rgba(255,160, 40,.5) 0%, transparent 100%);
+}
+
+/* ── Scrollbars ───────────────────────────────────────────────────────────────
+   Thin orange thumb on dark track.
+────────────────────────────────────────────────────────────────────────────── */
+::-webkit-scrollbar       { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: #0f2d3d; }
+::-webkit-scrollbar-thumb { background: #ff7d25; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #ffaa66; }
+
+
+/* ── Time labels → green ──────────────────────────────────────────────────────
+   All time stamps (timeline, meal cards, history detail) use #10B981.
+────────────────────────────────────────────────────────────────────────────── */
+.tl-time        { color: #10B981 !important; }
+.mc-time        { color: #10B981 !important; }
+.de-time        { color: #10B981 !important; }
+.panel-subtitle { color: #10B981 !important; }
+
+/* ── Green text on orange blocks ──────────────────────────────────────────────
+   Any element whose background is the orange accent colour uses #10B981 text
+   instead of white, for better readability in the Outer Wilds palette.
+────────────────────────────────────────────────────────────────────────────── */
+.summary-status.status-pending        { background: #10B981 !important; }
+.btn-primary                          { background: #676e4c !important; color: #ff7d25 !important; border-color: #676e4c !important; }
+.type-pill.selected                   { background: #676e4c !important; color: #ff7d25 !important; border-color: #676e4c !important; }
+.cal-day.selected                     { background: #676e4c !important; color: #ff7d25 !important; }
+.update-banner                        { background: #676e4c !important; color: #ff7d25 !important; }
+.update-dismiss-btn                   { color: rgba(255, 125, 37, .7) !important; }
+.update-dismiss-btn:hover             { color: #ff7d25 !important; }
+
+/* ── History calendar dots ────────────────────────────────────────────────────
+   Green dots (matches finance income colour) instead of orange accent.
+────────────────────────────────────────────────────────────────────────────── */
+.cal-day.has-data::after {
+  background: #10B981 !important;
+}
+
+.cal-day.selected.has-data::after {
+  background: rgba(16, 185, 129, .6) !important;
+}
+
+/* ── Ship Log override ────────────────────────────────────────────────────────
+   Orange glow and serif font for the Outer Wilds theme.
+────────────────────────────────────────────────────────────────────────────── */
+.ship-log-text {
+  color:       #10B981 !important;
+  font-family: 'ITC Serif Gothic', 'Palatino Linotype', 'Book Antiqua', Palatino, serif;
+  text-shadow:
+    0 0 20px rgba(16, 185, 129, 0.8) !important,
+    0 0  8px rgba(16, 185, 129, 0.6) !important;
+}

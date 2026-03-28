@@ -1,4 +1,16 @@
-/* global tracker */
+/* global tracker, applyTheme, triggerShipLog, playSound */
+
+if (window.tracker?.sound?.play) {
+  console.log('[sound-renderer] sound API available');
+} else {
+  console.warn('[sound-renderer] sound API NOT available - check preload.js');
+}
+
+// ── Theme ──────────────────────────────────────────────────────────────────────
+window.tracker.theme.getActive().then(name => {
+  applyTheme(name);
+  window.tracker.theme.onChange(applyTheme);
+});
 
 const typeRow       = document.getElementById('type-row');
 const descInput     = document.getElementById('description');
@@ -60,7 +72,11 @@ btnSave.addEventListener('click', async () => {
     calories:    Number.isFinite(cal) && cal > 0 ? cal : null,
   });
 
-  tracker.closeMeal();
+  btnSkip.disabled = true;
+  try { console.log('[sound-renderer] trigger fired: meal-log'); playSound('meal-log'); } catch (_) {}
+  triggerShipLog();
+  // Wait for Ship Log animation to finish before closing (~3 s).
+  setTimeout(() => tracker.closeMeal(), 2000);
 });
 
-btnSkip.addEventListener('click', () => tracker.closeMeal());
+btnSkip.addEventListener('click', async () => { try { await playSoundAndWait('close'); } catch (_) {} tracker.closeMeal(); });

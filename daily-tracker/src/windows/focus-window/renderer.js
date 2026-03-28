@@ -1,5 +1,23 @@
-/* global tracker */
+/* global tracker, applyTheme, triggerShipLog, playThemeSound, playSound */
 'use strict';
+
+console.log('[renderer-init] tracker.sound:', typeof window.tracker?.sound?.play);
+console.log('[renderer-init] tracker.music:', typeof window.tracker?.music?.getPreBreakTrack);
+
+if (window.tracker?.sound?.play) {
+  console.log('[sound-renderer] sound API available');
+} else {
+  console.warn('[sound-renderer] sound API NOT available - check preload.js');
+}
+
+// ── Theme ──────────────────────────────────────────────────────────────────────
+window.tracker.theme.getActive().then(name => {
+  applyTheme(name);
+  window.tracker.theme.onChange(async (newTheme) => {
+    applyTheme(newTheme);
+    await reloadMusicForTheme(newTheme);
+  });
+});
 
 // ── Constants ──────────────────────────────────────────────────────────────────
 
@@ -24,6 +42,7 @@ let totalSeconds     = MODES.pomodoro.minutes * 60;
 let remainingSeconds = totalSeconds;
 let timerId          = null;
 let isRunning        = false;
+let cycleCount       = 1;   // 1–4; increments only on natural Pomodoro completion
 
 /** Sessions loaded from / saved to the DB. Each entry is a DB row. */
 let sessions = [];
@@ -66,6 +85,27 @@ const btnStart          = $('btn-start');
 const btnSkip           = $('btn-skip');
 const btnAddTask        = $('btn-add-task');
 const tabs              = document.querySelectorAll('.tab');
+
+// ── Cycle-dots display (created dynamically so index.html stays unchanged) ─────
+
+const elCycleDots = document.createElement('div');
+elCycleDots.id = 'cycle-dots';
+
+const _cycleStyle = document.createElement('style');
+_cycleStyle.textContent = `
+  #cycle-dots {
+    text-align: center;
+    font-size: 13px;
+    letter-spacing: 5px;
+    color: var(--text-light, #aaa);
+    margin-top: 2px;
+  }
+  #cycle-dots .dot-filled { color: var(--accent, #4f63d2); }
+`;
+document.head.appendChild(_cycleStyle);
+
+// Insert after .session-counter, before #task-active-label
+elCount.closest('.session-counter').insertAdjacentElement('afterend', elCycleDots);
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -146,34 +186,6 @@ function saveFocusSessionToStorage() {
   }
 }
 
-// ── Web Audio notification ─────────────────────────────────────────────────────
-
-function playCompletionSound() {
-  try {
-    const ctx = new AudioContext();
-    const notes = [
-      { freq: 880, startAt: 0,    duration: 0.18 },
-      { freq: 660, startAt: 0.22, duration: 0.22 },
-      { freq: 880, startAt: 0.48, duration: 0.30 },
-    ];
-    notes.forEach(({ freq, startAt, duration }) => {
-      const osc  = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(freq, ctx.currentTime + startAt);
-      gain.gain.setValueAtTime(0, ctx.currentTime + startAt);
-      gain.gain.linearRampToValueAtTime(0.35, ctx.currentTime + startAt + 0.02);
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + startAt + duration);
-      osc.start(ctx.currentTime + startAt);
-      osc.stop(ctx.currentTime + startAt + duration);
-    });
-    setTimeout(() => ctx.close(), 1200);
-  } catch {
-    // Audio unavailable — silently skip
-  }
-}
 
 // ── Render ─────────────────────────────────────────────────────────────────────
 
@@ -221,6 +233,12 @@ function renderLog() {
     li.append(dot, time, label, type);
     elLog.appendChild(li);
   });
+}
+
+function renderCycleDots() {
+  // cycleCount is the *next* pomo number (1 = none done yet, 4 = 3 done)
+  const completed = cycleCount - 1;
+  elCycleDots.textContent = [1, 2, 3, 4].map(i => i <= completed ? '●' : '○').join(' ');
 }
 
 function renderModeUI() {
@@ -494,6 +512,78 @@ async function persistSession() {
   await loadSessionsFromDB();
 }
 
+// ── Pre-break music ────────────────────────────────────────────────────────────
+
+/** Dedicated Audio element for the pre-break track (not looped). */
+const preBreakAudio = new Audio();
+let preBreakPlaying = false;
+
+/**
+ * Fades out current break music over ~2 s, then plays the pre-break track.
+ * Safe to call even when no break music is playing.
+ */
+async function playPreBreakMusic() {
+  console.log('[pre-break] playPreBreakMusic called');
+  console.log('[pre-break] starting pre-break music at 2:00 remaining');
+
+  let filePath;
+  try {
+    filePath = await window.tracker.music.getPreBreakTrack(musicActiveTheme);
+    console.log('[pre-break] received path:', filePath);
+  } catch (err) {
+    console.error('[pre-break] getPreBreakTrack failed:', err);
+    return;
+  }
+  if (!filePath) {
+    console.warn('[pre-break] no file returned from IPC');
+    return;
+  }
+
+  // Fade out break music over 2 s
+  const FADE_MS   = 2000;
+  const STEPS     = 40;
+  const startVol  = musicAudio.paused ? 0 : musicAudio.volume;
+  const stepDelay = FADE_MS / STEPS;
+
+  if (!musicAudio.paused && startVol > 0) {
+    let step = 0;
+    const fadeId = setInterval(() => {
+      step++;
+      musicAudio.volume = Math.max(0, startVol * (1 - step / STEPS));
+      if (step >= STEPS) {
+        clearInterval(fadeId);
+        musicStop();
+        musicAudio.volume = parseFloat(musicVolume.value); // restore for later
+      }
+    }, stepDelay);
+  }
+
+  // Play the pre-break track (starts immediately; fade runs in parallel)
+  const normalized = filePath.replace(/\\/g, '/');
+  const url        = encodeURI('file:///' + normalized).replace(/#/g, '%23');
+  console.log('[pre-break] playing url:', url);
+
+  preBreakAudio.src    = url;
+  preBreakAudio.loop   = false;
+  preBreakAudio.volume = parseFloat(musicVolume.value);
+  preBreakAudio.addEventListener('error', () => {
+    console.error('[audio] failed to load:', url, preBreakAudio.error?.code, preBreakAudio.error?.message);
+  }, { once: true });
+  preBreakAudio.play().then(() => {
+    console.log('[audio] playing successfully');
+    preBreakPlaying = true;
+  }).catch(e => {
+    console.error('[audio] play() failed:', e.message);
+  });
+}
+
+/** Stop and reset the pre-break audio (called when break ends or mode changes). */
+function stopPreBreakMusic() {
+  preBreakAudio.pause();
+  preBreakAudio.src = '';
+  preBreakPlaying   = false;
+}
+
 // ── Timer control ──────────────────────────────────────────────────────────────
 
 function tick() {
@@ -503,6 +593,13 @@ function tick() {
   }
   remainingSeconds -= 1;
   renderDisplay();
+
+  // Trigger pre-break music 2 minutes before pomodoro ends
+  if (currentMode === 'pomodoro' && !preBreakPlaying) {
+    if (remainingSeconds === 120 || (remainingSeconds < 120 && remainingSeconds === totalSeconds - 1)) {
+      playPreBreakMusic();
+    }
+  }
 }
 
 async function startTimer() {
@@ -531,7 +628,14 @@ async function skipTimer() {
 
   let nextMode;
   if (currentMode === 'pomodoro') {
-    nextMode = pomodoroCount() % 4 === 3 ? 'long-break' : 'short-break';
+    if (cycleCount < 4) {
+      nextMode = 'short-break';
+      cycleCount++;
+    } else {
+      nextMode = 'long-break';
+      cycleCount = 1;
+    }
+    renderCycleDots();
   } else {
     nextMode = 'pomodoro';
   }
@@ -554,24 +658,51 @@ async function completeSession() {
   remainingSeconds = 0;
   renderDisplay();
 
-  if (currentMode === 'pomodoro') {
+  const completedMode = currentMode;
+
+  if (completedMode === 'pomodoro') {
+    // ── Pomodoro completed ─────────────────────────────────────────────────────
     await decrementTopTaskEstimate();
     musicClear();
+    triggerShipLog();
+    try { console.log('[sound-renderer] trigger fired: pomo-complete'); playSound('pomo-complete'); } catch (_) {}
+    await persistSession();
+
+    // Advance cycle counter and pick break type
+    let nextMode;
+    if (cycleCount < 4) {
+      nextMode = 'short-break';
+      cycleCount++;
+    } else {
+      nextMode = 'long-break';
+      cycleCount = 1;
+    }
+    renderCycleDots();
+
+    // Brief pause to show 00:00 before auto-starting the break
+    setTimeout(async () => {
+      switchMode(nextMode);
+      await startTimer();
+    }, 1500);
+
+  } else {
+    // ── Break completed ────────────────────────────────────────────────────────
+    try { console.log('[sound-renderer] trigger fired: checkin'); playSound('checkin'); } catch (_) {}
+    await persistSession();
+
+    // Return to Pomodoro and auto-start
+    setTimeout(async () => {
+      switchMode('pomodoro');
+      await startTimer();
+    }, 1500);
   }
-
-  playCompletionSound();
-  await persistSession();
-
-  setTimeout(() => {
-    remainingSeconds = totalSeconds;
-    renderDisplay();
-  }, 1500);
 }
 
 // ── Mode switching ─────────────────────────────────────────────────────────────
 
 function switchMode(mode) {
   if (isRunning) pauseTimer();
+  stopPreBreakMusic();
   currentMode          = mode;
   totalSeconds         = MODES[mode].minutes * 60;
   remainingSeconds     = totalSeconds;
@@ -594,7 +725,7 @@ tabs.forEach(tab => {
   tab.addEventListener('click', () => switchMode(tab.dataset.mode));
 });
 
-$('btn-close')?.addEventListener('click', () => tracker.closeWindow());
+$('btn-close')?.addEventListener('click', async () => { try { await playSoundAndWait('close'); } catch (_) {} tracker.closeWindow(); });
 
 // In-progress list "✓ Done" — event delegation
 elInprogressList.addEventListener('click', async e => {
@@ -657,6 +788,7 @@ document.addEventListener('click', () => {
 
 renderModeUI();
 renderDisplay();
+renderCycleDots();
 loadSessionsFromDB();
 loadTasksFromDB();
 
@@ -682,6 +814,7 @@ let musicActivePool        = null;      // 'focus' | 'break' | null
 let musicLastFocusFilename = null;      // last played focus track (for repeat avoidance)
 let musicLastBreakFilename = null;      // last played break track
 let musicUploadPool        = 'focus';   // pool assigned to next upload batch
+let musicActiveTheme       = 'default'; // theme whose music is loaded
 
 // ── Music helpers ──────────────────────────────────────────────────────────────
 
@@ -726,7 +859,7 @@ function musicRenderPlaylist() {
     del.textContent = '✕';
     del.title = 'Remove track';
     del.addEventListener('click', async () => {
-      await tracker.music.deleteTrack(t.filename);
+      await tracker.music.deleteTrack(musicActiveTheme, t.pool || 'focus', t.filename);
       if (musicCurrentIdx === i) {
         musicAudio.pause();
         musicAudio.src = '';
@@ -846,6 +979,33 @@ function musicSkipInPool() {
   musicUpdateControls();
 }
 
+// ── Music theme helpers ────────────────────────────────────────────────────────
+
+function applyThemePomodoroMinutes(themeName) {
+  MODES.pomodoro.minutes = themeName === 'outer-wilds' ? 22 : 25;
+  // If we're on pomodoro and not running, reset to new duration
+  if (currentMode === 'pomodoro' && !isRunning) {
+    totalSeconds     = MODES.pomodoro.minutes * 60;
+    remainingSeconds = totalSeconds;
+    renderDisplay();
+  }
+}
+
+async function reloadMusicForTheme(themeName) {
+  musicActiveTheme = themeName;
+  applyThemePomodoroMinutes(themeName);
+  musicClear();
+  try {
+    const [focusTracks, breakTracks] = await Promise.all([
+      tracker.music.getActiveThemeTracks('focus'),
+      tracker.music.getActiveThemeTracks('break'),
+    ]);
+    musicTracks = [...(focusTracks || []), ...(breakTracks || [])];
+  } catch { musicTracks = []; }
+  musicRenderPlaylist();
+  musicUpdateControls();
+}
+
 // ── Event listeners ────────────────────────────────────────────────────────────
 
 musicAudio.addEventListener('ended', () => {
@@ -884,9 +1044,10 @@ musicFileInput.addEventListener('change', async () => {
   const files = Array.from(musicFileInput.files);
   for (const file of files) {
     const saved = await tracker.music.saveTrack(
+      musicActiveTheme,
+      musicUploadPool,
       file.path,
       file.name.replace(/\.[^.]+$/, ''),
-      musicUploadPool,
     );
     if (saved) musicTracks.push(saved);
   }
@@ -898,8 +1059,72 @@ musicFileInput.addEventListener('change', async () => {
 // Load existing tracks on init (no auto-play)
 (async () => {
   try {
-    musicTracks = await tracker.music.getTracks() || [];
+    musicActiveTheme = await tracker.theme.getActive() || 'default';
+    applyThemePomodoroMinutes(musicActiveTheme);
+
+    const [focusTracks, breakTracks] = await Promise.all([
+      tracker.music.getActiveThemeTracks('focus'),
+      tracker.music.getActiveThemeTracks('break'),
+    ]);
+    musicTracks = [...(focusTracks || []), ...(breakTracks || [])];
+
   } catch { musicTracks = []; }
   musicRenderPlaylist();
   musicUpdateControls();
+})();
+
+// ── Dev panel (development mode only) ─────────────────────────────────────────
+
+(async () => {
+  const isDev = await window.tracker.app.isDev();
+  if (!isDev) return;
+
+  $('dev-panel').style.display = '';
+
+  // Set timer to any value in seconds
+  $('dev-set-timer-btn').addEventListener('click', () => {
+    const secs = parseInt($('dev-timer-input').value, 10);
+    if (!Number.isNaN(secs) && secs >= 0) {
+      remainingSeconds = secs;
+      renderDisplay();
+    }
+  });
+
+  // Force pomodoro completion — triggers decrementTopTaskEstimate, ShipLog, sound, persistSession
+  $('dev-force-pomo').addEventListener('click', async () => {
+    if (currentMode !== 'pomodoro') switchMode('pomodoro');
+    await completeSession();
+  });
+
+  // Force break completion — triggers break persistSession
+  $('dev-force-break').addEventListener('click', async () => {
+    if (currentMode === 'pomodoro') switchMode('short-break');
+    await completeSession();
+  });
+
+  // Test any sound type individually
+  $('dev-sound-play').addEventListener('click', () => {
+    playSound($('dev-sound-select').value);
+  });
+
+  // Test pre-break music directly
+  const _devPreBreakRow = document.createElement('div');
+  _devPreBreakRow.className = 'dev-row';
+  const _devPreBreakBtn = document.createElement('button');
+  _devPreBreakBtn.textContent = '▶ Test Pre-Break Music';
+  _devPreBreakBtn.addEventListener('click', () => { console.log('[dev] test pre-break button clicked'); playPreBreakMusic(); });
+  _devPreBreakRow.appendChild(_devPreBreakBtn);
+  $('dev-panel').appendChild(_devPreBreakRow);
+
+  // Reset cycle counter
+  const _devResetRow = document.createElement('div');
+  _devResetRow.className = 'dev-row';
+  const _devResetBtn = document.createElement('button');
+  _devResetBtn.textContent = '↺ Reset Cycle';
+  _devResetBtn.addEventListener('click', () => {
+    cycleCount = 1;
+    renderCycleDots();
+  });
+  _devResetRow.appendChild(_devResetBtn);
+  $('dev-panel').appendChild(_devResetRow);
 })();

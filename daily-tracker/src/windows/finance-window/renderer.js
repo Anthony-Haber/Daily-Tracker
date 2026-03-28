@@ -1,5 +1,17 @@
-/* global tracker */
+/* global tracker, applyTheme, triggerShipLog, playSound */
 'use strict';
+
+if (window.tracker?.sound?.play) {
+  console.log('[sound-renderer] sound API available');
+} else {
+  console.warn('[sound-renderer] sound API NOT available - check preload.js');
+}
+
+// ── Theme ──────────────────────────────────────────────────────────────────────
+window.tracker.theme.getActive().then(name => {
+  applyTheme(name);
+  window.tracker.theme.onChange(applyTheme);
+});
 
 const $ = id => document.getElementById(id);
 
@@ -49,7 +61,11 @@ $('btn-save').addEventListener('click', async () => {
       category,
       description: notes || null,
     });
-    tracker.closeWindow();
+    $('btn-cancel').disabled = true;
+    try { console.log('[sound-renderer] trigger fired: finance-log'); playSound('finance-log'); } catch (_) {}
+    triggerShipLog();
+    // Wait for Ship Log animation to finish before closing (~3 s).
+    setTimeout(() => tracker.closeWindow(), 2000);
   } catch (err) {
     console.error('[finance] save failed:', err);
     $('btn-save').disabled    = false;
@@ -59,4 +75,4 @@ $('btn-save').addEventListener('click', async () => {
 
 // ── Cancel ─────────────────────────────────────────────────────────────────────
 
-$('btn-cancel').addEventListener('click', () => tracker.closeWindow());
+$('btn-cancel').addEventListener('click', async () => { try { await playSoundAndWait('close'); } catch (_) {} tracker.closeWindow(); });

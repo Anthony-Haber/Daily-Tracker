@@ -1,18 +1,17 @@
 /* ── Reset ───────────────────────────────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-/* ── Design tokens ───────────────────────────────────────────────────────────── */
+/* ── Design tokens (mapped to theme variables) ───────────────────────────────── */
 :root {
-  /* Neutral palette with a single indigo accent */
-  --bg:           #f0f2f5;
-  --surface:      #ffffff;
-  --border:       #dde1e7;
-  --border-focus: #4f63d2;
-  --accent:       #4f63d2;
-  --accent-hover: #3d4fb8;
+  --bg:           var(--theme-bg-primary);
+  --surface:      var(--theme-bg-secondary);
+  --border:       var(--theme-border-color);
+  --border-focus: var(--theme-accent-primary);
+  --accent:       var(--theme-accent-primary);
+  --accent-hover: var(--theme-accent-secondary);
   --accent-light: #eef0fc;
-  --text:         #111827;
-  --text-muted:   #6b7280;
+  --text:         var(--theme-text-primary);
+  --text-muted:   var(--theme-text-secondary);
   --text-light:   #9ca3af;
   --success:      #10B981;
   --success-bg:   #ecfdf5;
@@ -20,10 +19,10 @@
   --success-border:#6ee7b7;
   --warn:         #f59e0b;
 
-  --radius:       8px;
+  --radius:       var(--theme-radius);
   --radius-pill:  999px;
-  --shadow:       0 4px 24px rgba(0,0,0,.10), 0 1px 4px rgba(0,0,0,.06);
-  --font:         'Segoe UI', system-ui, -apple-system, sans-serif;
+  --shadow:       var(--theme-shadow);
+  --font:         var(--theme-font-body);
 }
 
 /* ── Base ────────────────────────────────────────────────────────────────────── */

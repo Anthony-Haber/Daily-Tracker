@@ -1,5 +1,17 @@
-/* global tracker */
+/* global tracker, applyTheme, triggerShipLog, playSound */
 'use strict';
+
+if (window.tracker?.sound?.play) {
+  console.log('[sound-renderer] sound API available');
+} else {
+  console.warn('[sound-renderer] sound API NOT available - check preload.js');
+}
+
+// ── Theme ──────────────────────────────────────────────────────────────────────
+window.tracker.theme.getActive().then(name => {
+  applyTheme(name);
+  window.tracker.theme.onChange(applyTheme);
+});
 
 // ── Utilities ─────────────────────────────────────────────────────────────────
 
@@ -76,6 +88,9 @@ function setupNav() {
       const panelId = btn.dataset.panel;
       if (panelId === activePanelId) return;
 
+      // Stop history sound if leaving that panel
+      if (activePanelId === 'history' && typeof stopLastSound === 'function') stopLastSound();
+
       // Hide old panel
       document.getElementById('panel-' + activePanelId).classList.add('hidden');
       document.getElementById('panel-' + activePanelId).classList.remove('active');
@@ -94,8 +109,9 @@ function setupNav() {
       if (panelId === 'today')        await loadTodayPanel();
       else if (panelId === 'tasks')   { await loadTasksPanel(); setupKanbanDrop(); }
       else if (panelId === 'meals')   await loadMealsPanel();
-      else if (panelId === 'history') await loadHistoryPanel();
+      else if (panelId === 'history') { playSound('history'); await loadHistoryPanel(); }
       else if (panelId === 'finance') await loadFinancePanel();
+      else if (panelId === 'themes')  await loadThemesPanel();
       else if (panelId === 'settings') await loadSettingsPanel();
     });
   });
@@ -354,6 +370,7 @@ function makeTaskEditCard(task) {
   `;
 
   card.querySelector('.te-cancel').addEventListener('click', () => {
+    try { playSound('close'); } catch (_) {}
     editingTaskId = null;
     renderKanban(allTasks, taskFilterDate);
   });
@@ -415,6 +432,7 @@ function setupTaskForm() {
   });
 
   $('btn-tf-cancel').addEventListener('click', () => {
+    try { playSound('close'); } catch (_) {}
     $('task-form').classList.add('hidden');
   });
 
@@ -436,6 +454,9 @@ function setupTaskForm() {
     $('tf-category').value = '';
     $('tf-pomos').value    = '1';
     $('task-form').classList.add('hidden');
+    triggerShipLog();
+    try { await playSoundAndWait('ship-log'); } catch (_) {}
+    try { playSound('checkin'); } catch (_) {}
     await loadTasksPanel();
   });
 
@@ -525,6 +546,7 @@ function setupMealForm() {
   });
 
   $('btn-mf-cancel').addEventListener('click', () => {
+    try { playSound('close'); } catch (_) {}
     $('meal-form').classList.add('hidden');
     mealTypeSelected = null;
     $$('#meal-type-row .type-pill').forEach(b => b.classList.remove('selected'));
@@ -550,6 +572,7 @@ function setupMealForm() {
     mealTypeSelected = null;
     $$('#meal-type-row .type-pill').forEach(b => b.classList.remove('selected'));
     $('meal-form').classList.add('hidden');
+    try { playSound('meal-log'); } catch (_) {}
     await loadMealsPanel();
   });
 
@@ -929,6 +952,7 @@ function setupFinanceForm() {
   });
 
   $('btn-ff-cancel').addEventListener('click', () => {
+    try { playSound('close'); } catch (_) {}
     $('finance-form').classList.add('hidden');
   });
 
@@ -948,6 +972,7 @@ function setupFinanceForm() {
     $('ff-category').value = '';
     $('ff-desc').value     = '';
     $('finance-form').classList.add('hidden');
+    try { playSound('finance-log'); } catch (_) {}
     await loadFinancePanel();
   });
 }
@@ -1204,6 +1229,31 @@ function fmtHour(h) {
   return `${h12}:00 ${ampm}`;
 }
 
+// ── Themes panel ───────────────────────────────────────────────────────────────
+
+function setActiveThemeCard(themeName) {
+  document.querySelectorAll('#panel-themes .theme-card[data-theme]').forEach(card => {
+    card.classList.toggle('active', card.dataset.theme === themeName);
+  });
+}
+
+async function loadThemesPanel() {
+  const activeTheme = await tracker.theme.getActive();
+  setActiveThemeCard(activeTheme);
+
+  document.querySelectorAll('#panel-themes .theme-card[data-theme]').forEach(card => {
+    // Remove any previously attached listener by cloning
+    const fresh = card.cloneNode(true);
+    card.parentNode.replaceChild(fresh, card);
+    fresh.addEventListener('click', async () => {
+      const themeName = fresh.dataset.theme;
+      await tracker.theme.setActive(themeName);
+      applyTheme(themeName);
+      setActiveThemeCard(themeName);
+    });
+  });
+}
+
 async function loadSettingsPanel() {
   if (!_settingsInitialized) {
     await setupSettingsPanel();
@@ -1221,7 +1271,8 @@ async function loadSettingsPanel() {
   $('sp-sel-end').value                  = s.reminderEndHour;
   $('sp-sel-checkin-interval').value     = s.checkinInterval || 60;
   $('sp-toggle-startup').checked         = s.launchOnStartup;
-  $('sp-db-path').textContent      = dbPath || 'Not configured';
+  $('sp-db-path').textContent            = dbPath || 'Not configured';
+
 }
 
 async function setupSettingsPanel() {
@@ -1261,6 +1312,7 @@ async function setupSettingsPanel() {
   $('sp-toggle-startup').addEventListener('change', async (e) => {
     await tracker.setAutoLaunch(e.target.checked);
   });
+
 
   // Change DB folder
   $('sp-btn-change-db').addEventListener('click', async () => {
@@ -1364,6 +1416,7 @@ tracker.onTasksChanged(() => {
   });
 
   dismissBtn.addEventListener('click', () => {
+    try { playSound('close'); } catch (_) {}
     banner.classList.add('hidden');
   });
 }());

@@ -1,0 +1,24 @@
+/* ── Default theme ────────────────────────────────────────────────────────────
+   This file defines ALL theme variables. Every window's styles.css maps its
+   local design-token variables (--bg, --accent, etc.) to these --theme-*
+   variables. Swapping the active theme re-defines these values and all windows
+   update automatically via CSS variable inheritance.
+────────────────────────────────────────────────────────────────────────────── */
+:root {
+  --theme-bg-primary:          #f0f2f5;    /* main window / page background    */
+  --theme-bg-secondary:        #ffffff;    /* card / surface background         */
+  --theme-bg-tertiary:         #f0f2f5;    /* subtle backgrounds, input fields  */
+  --theme-accent-primary:      #4f63d2;    /* main accent — purple/indigo       */
+  --theme-accent-secondary:    #3d4fb8;    /* hover / darker accent             */
+  --theme-text-primary:        #111827;    /* main body text                    */
+  --theme-text-secondary:      #6b7280;    /* muted / secondary text            */
+  --theme-text-on-accent:      #ffffff;    /* text on accent-coloured surfaces  */
+  --theme-border-color:        #dde1e7;    /* borders and dividers              */
+  --theme-timer-color:         #4f63d2;    /* the big Pomodoro countdown number */
+  --theme-button-primary-bg:   #4f63d2;    /* primary button background         */
+  --theme-button-primary-text: #ffffff;    /* primary button text               */
+  --theme-font-display:        'Segoe UI', system-ui, -apple-system, sans-serif;
+  --theme-font-body:           'Segoe UI', system-ui, -apple-system, sans-serif;
+  --theme-shadow:              0 4px 24px rgba(0,0,0,.10), 0 1px 4px rgba(0,0,0,.06);
+  --theme-radius:              8px;
+}

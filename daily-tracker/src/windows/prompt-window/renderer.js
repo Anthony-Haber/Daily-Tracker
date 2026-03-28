@@ -1,4 +1,21 @@
-/* global tracker */
+/* global tracker, applyTheme, triggerShipLog, playSound */
+
+// ── Sound API diagnostic (Step 3) ──────────────────────────────────────────────
+console.log('[sound-test] window.tracker:', typeof window.tracker);
+console.log('[sound-test] window.tracker.sound:', typeof window.tracker?.sound);
+console.log('[sound-test] window.tracker.sound.play:', typeof window.tracker?.sound?.play);
+
+if (window.tracker?.sound?.play) {
+  console.log('[sound-renderer] sound API available');
+} else {
+  console.warn('[sound-renderer] sound API NOT available - check preload.js');
+}
+
+// ── Theme ──────────────────────────────────────────────────────────────────────
+window.tracker.theme.getActive().then(name => {
+  applyTheme(name);
+  window.tracker.theme.onChange(applyTheme);
+});
 
 // ── Element refs ──────────────────────────────────────────────────────────────
 
@@ -209,9 +226,14 @@ async function submit() {
       }
     }
 
+    btnSkip.disabled = true;
+    triggerShipLog();
     showToast();
-    // Brief pause so the user sees the confirmation before the window closes.
-    setTimeout(() => tracker.closePrompt(), 900);
+    // Play ship-log sound, wait for it to finish, then play checkin sound.
+    try { await playSoundAndWait('ship-log'); } catch (_) {}
+    try { playSound('checkin'); } catch (_) {}
+    // Wait for Ship Log animation to finish before closing (~3 s).
+    setTimeout(() => tracker.closePrompt(), 2000);
   } catch {
     // Restore state on error so the user can retry.
     submitting = false;
@@ -242,7 +264,7 @@ document.addEventListener('keydown', (e) => {
 // ── Button events ─────────────────────────────────────────────────────────────
 
 btnLog.addEventListener('click',  submit);
-btnSkip.addEventListener('click', () => tracker.closePrompt());
+btnSkip.addEventListener('click', async () => { try { await playSoundAndWait('close'); } catch (_) {} tracker.closePrompt(); });
 
 // ── Boot ──────────────────────────────────────────────────────────────────────
 

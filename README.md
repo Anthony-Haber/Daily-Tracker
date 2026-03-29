@@ -2,7 +2,7 @@
 
 Keep track of your day — effortlessly.
 
-Daily Tracker is a small Windows app that lives in your system tray and helps you stay aware of how you're spending your time. It gently checks in with you each hour, helps you log meals, and gives you space to reflect at the end of the day. Everything stays private on your own computer.
+Daily Tracker is a small desktop app that lives in your system tray and helps you stay aware of how you're spending your time. It gently checks in with you each hour, helps you log meals, and gives you space to reflect at the end of the day. Everything stays private on your own computer.
 
 ---
 
@@ -19,16 +19,26 @@ Your data is saved in a file on your computer — nothing is sent to the interne
 
 ## Download & Install
 
-1. Go to the **[Releases](../../releases)** page on GitHub
-2. Download the latest **`Daily-Tracker-Setup.exe`** file
-3. Double-click it and follow the on-screen steps (takes about 30 seconds)
-4. Daily Tracker will appear in your **system tray** — the small icons in the bottom-right corner of your taskbar
+Go to the **[Releases](../../releases)** page and download the latest version for your platform.
 
-**On first launch**, a short setup wizard will welcome you and ask where to save your data. The default (your Documents folder) works great for most people — just click "Start Using Daily Tracker."
+### Windows
+
+1. Download **`Daily-Tracker-Setup.exe`**
+2. Double-click it and follow the on-screen steps (takes about 30 seconds)
+3. Daily Tracker will appear in your **system tray** — the small icons in the bottom-right corner of your taskbar
+
+### macOS
+
+1. Download **`Daily-Tracker.dmg`**
+2. Open it and drag Daily Tracker to your Applications folder
+3. Launch the app — it will appear in your **menu bar**
+
+**On first launch**, a short setup wizard will welcome you and ask where to save your data. The default works great for most people.
 
 ### To uninstall
 
-Open **Windows Settings → Apps**, search for **Daily Tracker**, and click Uninstall.
+- **Windows:** Open **Settings → Apps**, search for **Daily Tracker**, and click Uninstall.
+- **macOS:** Drag the app from Applications to Trash.
 
 ---
 
@@ -36,15 +46,13 @@ Open **Windows Settings → Apps**, search for **Daily Tracker**, and click Unin
 
 - **Left-click** the tray icon to open the dashboard
 - **Right-click** the tray icon for quick access to log an activity, log a meal, or open the evening reflection
-- To set Daily Tracker to open automatically when you turn on your PC, go to **tray → Settings** and turn on "Start Daily Tracker when Windows starts"
+- To set Daily Tracker to open automatically at login, go to **tray → Settings** and turn on "Launch at startup"
 
 ---
 
 ## Screenshots
 
 > *(coming soon)*
-
----
 
 ---
 
@@ -55,24 +63,28 @@ Open **Windows Settings → Apps**, search for **Daily Tracker**, and click Unin
 - [Node.js](https://nodejs.org/) v18 or later (comes with npm)
 - A C++ build toolchain for compiling the SQLite native module:
   - **Windows:** Install [Visual Studio Build Tools](https://visualstudio.microsoft.com/visual-cpp-build-tools/) — select "Desktop development with C++"
+  - **macOS:** Install Xcode Command Line Tools — run `xcode-select --install`
 
 ### Run from source
 
 ```bash
-git clone https://github.com/Anthony-Haber/daily-tracker.git
-cd daily-tracker/daily-tracker
+git clone https://github.com/Anthony-Haber/Daily-Tracker.git
+cd Daily-Tracker/daily-tracker
 npm install
 npm start
 ```
 
-### Build a Windows installer
+### Build
 
 ```bash
-cd daily-tracker
+# Windows installer
 npm run build:win
+
+# macOS .dmg
+npm run build:mac
 ```
 
-The installer (`Daily-Tracker-Setup.exe`) will appear in the `dist/` folder.
+Output appears in the `dist/` folder.
 
 ### Project structure
 
@@ -84,6 +96,10 @@ daily-tracker/
     ├── db.js                # SQLite CRUD (better-sqlite3)
     ├── scheduler.js         # Hourly reminder timer
     ├── settings.js          # Persistent settings + auto-launch
+    ├── theme-loader.js      # Theme switching and asset loading
+    ├── ship-log/            # Ship-log animation assets
+    ├── sounds/              # UI sound effects
+    ├── themes/              # Theme definitions (colors, icons, music)
     └── windows/
         ├── main-window/     # Dashboard
         ├── prompt-window/   # Hourly check-in popup
@@ -107,7 +123,7 @@ daily-tracker/
 
 All data lives locally:
 
-- **Database:** `daily-tracker.db` — SQLite file in the folder chosen during setup (default: `Documents\DailyTracker`)
+- **Database:** `daily-tracker.db` — SQLite file in the folder chosen during setup
 - **Preferences:** `daily-tracker-config.json` — in the OS user-data directory
 
 No telemetry, no analytics, no network requests.

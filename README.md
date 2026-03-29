@@ -12,6 +12,7 @@ Daily Tracker is a small desktop app that lives in your system tray and helps yo
 - **Meal logging** — Keep a simple record of what you eat throughout the day.
 - **Evening reflection** — Wind down with a short review of your day: highlights, challenges, and goals for tomorrow.
 - **Dashboard** — See everything you've logged, organized by day, all in one place.
+- **Themes** — Switch between visual themes (including an Outer Wilds theme) with custom sounds and colors.
 
 Your data is saved in a file on your computer — nothing is sent to the internet.
 
